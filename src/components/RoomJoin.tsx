@@ -1,0 +1,95 @@
+import { useState } from 'react';
+import { signInAnonymous } from '../firebase/auth';
+import { joinRoom } from '../firebase/roomManager';
+import { ROOM_CODE_LENGTH } from '../game/constants';
+
+type Props = {
+  onJoined: (roomCode: string, uid: string) => void;
+  onBack: () => void;
+};
+
+export function RoomJoin({ onJoined, onBack }: Props) {
+  const [roomCode, setRoomCode] = useState('');
+  const [playerName, setPlayerName] = useState('');
+  const [status, setStatus] = useState<'input' | 'joining' | 'error'>('input');
+  const [error, setError] = useState('');
+
+  const handleJoin = async () => {
+    const code = roomCode.trim().toUpperCase();
+    if (code.length !== ROOM_CODE_LENGTH) {
+      setError(`ルームコードは${ROOM_CODE_LENGTH}文字です`);
+      setStatus('error');
+      return;
+    }
+
+    const name = playerName.trim() || 'プレイヤー2';
+    setStatus('joining');
+    setError('');
+
+    try {
+      const user = await signInAnonymous();
+      await joinRoom(code, user.uid, name);
+      onJoined(code, user.uid);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'ルーム参加に失敗しました');
+      setStatus('error');
+    }
+  };
+
+  return (
+    <div className="flex flex-col items-center justify-center min-h-screen gap-8">
+      <div className="text-center">
+        <h1 className="text-4xl font-bold text-amber-400 mb-2">ルームに入る</h1>
+        <p className="text-gray-400">ルームコードを入力してください</p>
+      </div>
+
+      <div className="flex flex-col gap-4 w-72">
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">ルームコード</label>
+          <input
+            type="text"
+            value={roomCode}
+            onChange={(e) => setRoomCode(e.target.value.toUpperCase().slice(0, ROOM_CODE_LENGTH))}
+            placeholder="ABCD"
+            maxLength={ROOM_CODE_LENGTH}
+            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white text-center text-2xl tracking-widest font-mono focus:border-blue-500 focus:outline-none uppercase"
+            disabled={status === 'joining'}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm text-gray-400 mb-1">プレイヤー名</label>
+          <input
+            type="text"
+            value={playerName}
+            onChange={(e) => setPlayerName(e.target.value)}
+            placeholder="プレイヤー2"
+            maxLength={10}
+            className="w-full px-4 py-3 bg-gray-800 border border-gray-600 rounded-lg text-white focus:border-blue-500 focus:outline-none"
+            disabled={status === 'joining'}
+          />
+        </div>
+
+        {error && (
+          <p className="text-red-400 text-sm text-center">{error}</p>
+        )}
+
+        <button
+          onClick={handleJoin}
+          disabled={status === 'joining' || roomCode.length !== ROOM_CODE_LENGTH}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded-lg text-white font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
+        >
+          {status === 'joining' ? '参加中...' : 'ルームに参加'}
+        </button>
+
+        <button
+          onClick={onBack}
+          disabled={status === 'joining'}
+          className="px-6 py-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+        >
+          戻る
+        </button>
+      </div>
+    </div>
+  );
+}

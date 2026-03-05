@@ -66,7 +66,7 @@ export function GameBoard({
 
         {isShipping && (
           <div className="flex gap-8 items-start">
-            <DrawPile remaining={state.drawPile.length} defectRate={defectRate} />
+            <DrawPile remaining={state.drawPile.length} defectRate={defectRate} drawPile={state.drawPile} />
             <div className="flex-1 flex flex-col">
               {/* アクティブな効果の表示 */}
               <ActiveEffects state={state} />

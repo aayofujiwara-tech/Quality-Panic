@@ -50,9 +50,12 @@ export function WaitingRoom({ roomCode, uid, onGameStart, onBack }: Props) {
   const handleStart = async () => {
     if (!canStart || !room) return;
 
+    const order = room.playerOrder ?? [];
+    if (order.length < 2) return;
+
     // マルチプレイヤーゲームを初期化してFirebaseに書き込み
     const { gameState, cardMaster, playerResponseHands } =
-      initMultiplayerGame(room.playerOrder);
+      initMultiplayerGame(order);
 
     await initializeGameInRoom(roomCode, gameState, cardMaster, playerResponseHands);
   };

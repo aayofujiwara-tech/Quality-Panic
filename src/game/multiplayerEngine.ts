@@ -132,14 +132,15 @@ export function multiDrawCard(
   cardMaster: Record<string, Card>,
   responseHand: ResponseCard[],
 ): DrawResult | null {
-  if (gameState.drawPile.length === 0 || !gameState.turnState) return null;
+  const drawPile = gameState.drawPile ?? [];
+  if (drawPile.length === 0 || !gameState.turnState) return null;
 
-  const newDrawPile = [...gameState.drawPile];
+  const newDrawPile = [...drawPile];
   const cardId = newDrawPile.shift()!;
   const card = cardMaster[cardId];
 
   const turn = { ...gameState.turnState };
-  turn.drawnCards = [...turn.drawnCards, cardId];
+  turn.drawnCards = [...(turn.drawnCards ?? []), cardId];
 
   if (turn.forcedDraws > 0) {
     turn.forcedDraws--;
@@ -269,7 +270,7 @@ export function multiUseResponseCard(
       break;
     case 'root_cause': {
       // 不具合無効化 + 山札から不具合1枚除外
-      const drawPileCopy = [...newState.drawPile];
+      const drawPileCopy = [...(newState.drawPile ?? [])];
       const defIdx = drawPileCopy.findIndex(id => cardMaster[id]?.type === 'defect');
       if (defIdx >= 0) {
         drawPileCopy.splice(defIdx, 1);
@@ -330,8 +331,8 @@ export function multiStopDrawing(
   const handSpace = RESPONSE_HAND_LIMIT - responseHand.length;
   responseDrawCount = Math.min(responseDrawCount, handSpace);
 
-  let newRespStock = [...gameState.responseStock];
-  let newRespDiscard = [...gameState.responseDiscard];
+  let newRespStock = [...(gameState.responseStock ?? [])];
+  let newRespDiscard = [...(gameState.responseDiscard ?? [])];
   const drawnResp: ResponseCard[] = [];
 
   for (let i = 0; i < responseDrawCount; i++) {
@@ -357,7 +358,7 @@ export function multiStopDrawing(
     [uid]: {
       profit,
       panicked: false,
-      cardsDrawn: turn.drawnCards.length,
+      cardsDrawn: (turn.drawnCards ?? []).length,
     },
   };
 
@@ -383,8 +384,8 @@ export function multiHandlePanic(
   const turn = gameState.turnState;
 
   // 汚染ペナルティ
-  const contStock = [...gameState.contaminationStock];
-  const drawPile = [...gameState.drawPile];
+  const contStock = [...(gameState.contaminationStock ?? [])];
+  const drawPile = [...(gameState.drawPile ?? [])];
   const penaltyCount = Math.min(PANIC_CONTAMINATION_PENALTY, contStock.length);
   for (let i = 0; i < penaltyCount; i++) {
     drawPile.push(contStock.shift()!);
@@ -400,7 +401,7 @@ export function multiHandlePanic(
     [uid]: {
       profit: 0,
       panicked: true,
-      cardsDrawn: turn.drawnCards.length,
+      cardsDrawn: (turn.drawnCards ?? []).length,
     },
   };
 
@@ -448,7 +449,7 @@ function advanceRound(
 ): MultiplayerGameState {
   const nextRound = gameState.round + 1;
 
-  if (nextRound > gameState.maxRounds || gameState.drawPile.length === 0) {
+  if (nextRound > gameState.maxRounds || (gameState.drawPile ?? []).length === 0) {
     return { ...gameState, phase: 'game_over' };
   }
 
@@ -464,8 +465,8 @@ function advanceRound(
   let contaminationCount = Math.ceil(totalProfit / 2);
   contaminationCount = Math.min(contaminationCount, MAX_CONTAMINATION_PER_ROUND);
 
-  const contStock = [...gameState.contaminationStock];
-  const drawPile = [...gameState.drawPile];
+  const contStock = [...(gameState.contaminationStock ?? [])];
+  const drawPile = [...(gameState.drawPile ?? [])];
   const toAdd = Math.min(contaminationCount, contStock.length);
   for (let i = 0; i < toAdd; i++) {
     drawPile.push(contStock.shift()!);
@@ -488,7 +489,7 @@ function advanceRound(
 
 export function multiCanStop(turnState: TurnState | null): boolean {
   if (!turnState) return false;
-  if (turnState.drawnCards.length === 0) return false;
+  if (!turnState.drawnCards || turnState.drawnCards.length === 0) return false;
   if (turnState.forcedDraws > 0) return false;
   return true;
 }
@@ -509,7 +510,7 @@ export function multiUseDesignChange(
   }
 
   const newHand = responseHand.filter((_, i) => i !== cardIndex);
-  const contStock = [...gameState.contaminationStock];
+  const contStock = [...(gameState.contaminationStock ?? [])];
   const removeCount = Math.min(2, contStock.length);
   contStock.splice(0, removeCount);
 

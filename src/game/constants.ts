@@ -3,14 +3,14 @@ import type { Difficulty } from './types';
 export const MAX_ROUNDS = 8;
 export const PANIC_THRESHOLD = 3;
 export const RESPONSE_HAND_LIMIT = 3;
-export const MAX_CONTAMINATION_PER_ROUND = 3;
+export const MAX_CONTAMINATION_PER_ROUND = 4;
 export const PANIC_CONTAMINATION_PENALTY = 3;
 
 export const DIFFICULTIES: Difficulty[] = [
-  { name: '簡単', targetScore: 15 },
-  { name: '普通', targetScore: 20 },
-  { name: '難しい', targetScore: 25 },
-  { name: '品証の神', targetScore: 30 },
+  { name: '簡単', targetScore: 25 },
+  { name: '普通', targetScore: 35 },
+  { name: '難しい', targetScore: 45 },
+  { name: '品証の神', targetScore: 55 },
 ];
 
 // 出荷山札の初期構成
@@ -21,8 +21,8 @@ export const INITIAL_PRODUCTS = {
 };
 
 export const INITIAL_DEFECTS = {
-  yellow: { count: 6, defectPoints: 1, name: '軽微な不具合' },
-  red: { count: 2, defectPoints: 2, name: '重大な不具合' },
+  yellow: { count: 8, defectPoints: 1, name: '軽微な不具合' },
+  red: { count: 3, defectPoints: 2, name: '重大な不具合' },
 };
 
 // イベントカード枚数

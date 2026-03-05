@@ -4,8 +4,10 @@ import { StatusBar } from './StatusBar';
 import { DrawPile } from './DrawPile';
 import { DrawnCards } from './DrawnCards';
 import { ActionButtons } from './ActionButtons';
+import { ResponseHand } from './ResponseHand';
 import { RoundHistory } from './RoundHistory';
 import { RoundResultView } from './RoundResult';
+import { DefectResponse } from './DefectResponse';
 
 type Props = {
   state: GameState;
@@ -13,10 +15,17 @@ type Props = {
   onStop: () => void;
   onNextRound: () => void;
   onPrepare: () => void;
+  onUseResponseCard: (index: number) => void;
+  onSkipResponseCard: () => void;
+  onUseDesignChange: (index: number) => void;
 };
 
-export function GameBoard({ state, onDraw, onStop, onNextRound, onPrepare }: Props) {
+export function GameBoard({
+  state, onDraw, onStop, onNextRound, onPrepare,
+  onUseResponseCard, onSkipResponseCard, onUseDesignChange,
+}: Props) {
   const defectRate = getDefectRate(state.drawPile);
+  const isShipping = state.phase === 'shipping' || state.phase === 'defect_response';
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -48,7 +57,7 @@ export function GameBoard({ state, onDraw, onStop, onNextRound, onPrepare }: Pro
           </div>
         )}
 
-        {state.phase === 'shipping' && (
+        {isShipping && (
           <div className="flex gap-8 items-start">
             <DrawPile remaining={state.drawPile.length} defectRate={defectRate} />
             <div className="flex-1 flex flex-col">
@@ -61,8 +70,8 @@ export function GameBoard({ state, onDraw, onStop, onNextRound, onPrepare }: Pro
               <ActionButtons
                 onDraw={onDraw}
                 onStop={onStop}
-                canDraw={state.drawPile.length > 0}
-                canStop={state.drawnCardsThisRound.length > 0}
+                canDraw={state.drawPile.length > 0 && state.phase === 'shipping'}
+                canStop={state.drawnCardsThisRound.length > 0 && state.phase === 'shipping'}
                 cardsDrawn={state.drawnCardsThisRound.length}
               />
             </div>
@@ -74,10 +83,36 @@ export function GameBoard({ state, onDraw, onStop, onNextRound, onPrepare }: Pro
             result={state.roundHistory[state.roundHistory.length - 1]}
             totalScore={state.score}
             targetScore={state.targetScore}
+            responseCardsGained={(() => {
+              const r = state.roundHistory[state.roundHistory.length - 1];
+              if (!r || r.panicked) return 0;
+              if (r.profit <= 2) return 2;
+              if (r.profit <= 5) return 1;
+              return 0;
+            })()}
             onNext={onNextRound}
           />
         )}
       </div>
+
+      {/* 対応カード手札（出荷フェーズ中に表示） */}
+      {isShipping && (
+        <ResponseHand
+          hand={state.responseHand}
+          onUseCard={onUseDesignChange}
+          disabled={state.phase === 'defect_response'}
+        />
+      )}
+
+      {/* 不具合対応モーダル */}
+      {state.phase === 'defect_response' && state.pendingDefect && (
+        <DefectResponse
+          defect={state.pendingDefect}
+          hand={state.responseHand}
+          onUseCard={onUseResponseCard}
+          onSkip={onSkipResponseCard}
+        />
+      )}
 
       <RoundHistory history={state.roundHistory} currentRound={state.round} />
     </div>

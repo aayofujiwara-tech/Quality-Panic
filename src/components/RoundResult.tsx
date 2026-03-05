@@ -4,10 +4,11 @@ type Props = {
   result: RoundResultType;
   totalScore: number;
   targetScore: number;
+  responseCardsGained: number;
   onNext: () => void;
 };
 
-export function RoundResultView({ result, totalScore, targetScore, onNext }: Props) {
+export function RoundResultView({ result, totalScore, targetScore, responseCardsGained, onNext }: Props) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-12">
       {result.panicked ? (
@@ -15,6 +16,7 @@ export function RoundResultView({ result, totalScore, targetScore, onNext }: Pro
           <div className="text-4xl font-bold text-red-400">パニック発生！</div>
           <div className="text-gray-400">このラウンドの利益は全て失われました...</div>
           <div className="text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
+          <div className="text-sm text-gray-500 mt-1">対応カードは入手できません</div>
         </>
       ) : (
         <>
@@ -22,6 +24,11 @@ export function RoundResultView({ result, totalScore, targetScore, onNext }: Pro
           <div className="text-2xl text-white">
             +{result.profit}点 獲得
           </div>
+          {responseCardsGained > 0 && (
+            <div className="text-sm text-green-300">
+              対応カードを{responseCardsGained}枚入手しました
+            </div>
+          )}
         </>
       )}
 

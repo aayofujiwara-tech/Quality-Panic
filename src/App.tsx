@@ -1,6 +1,9 @@
 import { useState, useCallback } from 'react';
 import type { GameState, Difficulty } from './game/types';
-import { initGame, prepareRound, drawCard, stopDrawing, nextRound } from './game/gameEngine';
+import {
+  initGame, prepareRound, drawCard, stopDrawing, nextRound,
+  useResponseCard, skipResponseCard, useDesignChange,
+} from './game/gameEngine';
 import { TitleScreen } from './components/TitleScreen';
 import { GameBoard } from './components/GameBoard';
 import { GameOverScreen } from './components/GameOverScreen';
@@ -28,6 +31,25 @@ function App() {
     setGameState((prev) => prev ? nextRound(prev) : prev);
   }, []);
 
+  const handleUseResponseCard = useCallback((cardIndex: number) => {
+    setGameState((prev) => prev ? useResponseCard(prev, cardIndex) : prev);
+  }, []);
+
+  const handleSkipResponseCard = useCallback(() => {
+    setGameState((prev) => prev ? skipResponseCard(prev) : prev);
+  }, []);
+
+  const handleUseDesignChange = useCallback((cardIndex: number) => {
+    setGameState((prev) => {
+      if (!prev) return prev;
+      const card = prev.responseHand[cardIndex];
+      if (card?.responseType === 'design_change') {
+        return useDesignChange(prev, cardIndex);
+      }
+      return prev; // 設計変更以外は出荷フェーズ中にクリックしても無視
+    });
+  }, []);
+
   const handleRestart = useCallback(() => {
     setGameState(null);
   }, []);
@@ -47,6 +69,9 @@ function App() {
       onStop={handleStop}
       onNextRound={handleNextRound}
       onPrepare={handlePrepare}
+      onUseResponseCard={handleUseResponseCard}
+      onSkipResponseCard={handleSkipResponseCard}
+      onUseDesignChange={handleUseDesignChange}
     />
   );
 }

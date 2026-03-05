@@ -4,6 +4,9 @@ import { createInitialDrawPile, createContaminationStock, createResponseStock, s
 
 // ゲーム初期化
 export function initGame(difficulty: Difficulty): GameState {
+  const stock = createResponseStock();
+  const initialCard = stock.shift()!;
+
   return {
     phase: 'prepare',
     round: 1,
@@ -15,9 +18,9 @@ export function initGame(difficulty: Difficulty): GameState {
     drawPile: createInitialDrawPile(),
     contaminationStock: createContaminationStock(),
 
-    responseStock: createResponseStock(),
+    responseStock: stock,
     responseDiscard: [],
-    responseHand: [],
+    responseHand: [initialCard],
 
     currentRoundProfit: 0,
     currentRoundProducts: [],

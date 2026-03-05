@@ -99,3 +99,87 @@ export type Difficulty = {
   name: string;
   targetScore: number;
 };
+
+// ===== 2人対戦用の型定義 =====
+
+export type RoomStatus = 'waiting' | 'playing' | 'finished';
+
+export type MultiplayerPhase = 'waiting' | 'prepare' | 'shipping' | 'result' | 'game_over';
+
+export type PlayerInfo = {
+  name: string;
+  ready: boolean;
+  score: number;
+  responseHand: ResponseCard[];
+  connected: boolean;
+};
+
+export type TurnState = {
+  drawnCards: string[];       // カードIDの配列
+  currentProfit: number;
+  currentDefectPoints: number;
+  panicThreshold: number;
+  snsFireActive: boolean;
+  forcedDraws: number;
+  waterInspectionActive: boolean;
+  isPanicked: boolean;
+};
+
+export type RoundResultMulti = {
+  [uid: string]: {
+    profit: number;
+    panicked: boolean;
+    cardsDrawn: number;
+  };
+};
+
+export type MultiplayerGameState = {
+  phase: MultiplayerPhase;
+  round: number;
+  maxRounds: number;
+
+  // 山札（カードIDの配列）
+  drawPile: string[];
+  contaminationStock: string[];
+
+  // 対応カード（共有ストック）
+  responseStock: string[];
+  responseDiscard: string[];
+
+  // 現在の手番
+  currentPlayerUid: string;
+  currentPlayerIndex: number;  // 0 or 1
+
+  // 手番中の状態
+  turnState: TurnState | null;
+
+  // ラウンド結果
+  roundResults: {
+    [round: number]: RoundResultMulti;
+  };
+
+  // 汚染情報（演出用）
+  lastContamination: {
+    count: number;
+    round: number;
+  } | null;
+};
+
+export type Room = {
+  roomCode: string;
+  status: RoomStatus;
+  createdAt: number;
+
+  players: {
+    [uid: string]: PlayerInfo;
+  };
+  hostUid: string;
+  playerOrder: string[];  // [hostUid, guestUid]
+
+  gameState: MultiplayerGameState;
+
+  // カードマスタデータ（ルーム作成時にホストが生成）
+  cardMaster: {
+    [cardId: string]: Card;
+  };
+};

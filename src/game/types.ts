@@ -18,7 +18,7 @@ export type DefectCard = {
 
 // イベントカード
 export type EventType = 'sns_fire' | 'deadline_pressure' | 'veteran_retire'
-  | 'kaizen' | 'iso_audit' | 'rookie';
+  | 'kaizen' | 'iso_audit' | 'sampling_inspection';
 export type EventCard = {
   type: 'event';
   eventType: EventType;
@@ -39,7 +39,8 @@ export type ResponseCard = {
 // ゲームフェーズ
 // 'defect_response': 不具合カードが出て対応カード使用を判断中
 // 'event_display': イベントカード発動表示中
-export type GamePhase = 'title' | 'prepare' | 'shipping' | 'defect_response' | 'event_display' | 'result' | 'game_over';
+// 'sampling': 抜き取り検査で3枚から1枚を選択中
+export type GamePhase = 'title' | 'prepare' | 'shipping' | 'defect_response' | 'event_display' | 'sampling' | 'result' | 'game_over';
 
 // ゲーム状態
 export type GameState = {
@@ -74,8 +75,8 @@ export type GameState = {
   // イベント効果フラグ
   snsFireActive: boolean;
   forcedDraws: number;
-  rookieNextRound: boolean;
-  canPreviewFirstCard: boolean;
+  samplingNextRound: boolean;
+  samplingCards: Card[];
   waterInspectionActive: boolean;
 
   // 履歴

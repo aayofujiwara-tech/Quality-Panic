@@ -32,7 +32,7 @@ export const INITIAL_EVENTS = {
   veteran_retire: { count: 1, name: 'ベテラン退職', description: 'パニック閾値が一時的に2に下がる' },
   kaizen: { count: 2, name: '改善提案', description: '不具合1枚を無効化' },
   iso_audit: { count: 1, name: 'ISO監査', description: '不具合Pt=0ならボーナス3点' },
-  rookie: { count: 2, name: '新人配属', description: '次ラウンドのみ、1枚目を見てから続行/中止選択可' },
+  sampling_inspection: { count: 2, name: '抜き取り検査', description: '次ラウンド開始時、山札から3枚を抜き取り検査。1枚を選んで確保できる' },
 };
 
 // 汚染ストック構成

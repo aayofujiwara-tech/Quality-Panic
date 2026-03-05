@@ -309,7 +309,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                   </span>
                 </span>
                 <span className="text-sm text-gray-400">
-                  引いた枚数: {gameState.turnState.drawnCards.length}
+                  引いた枚数: {(gameState.turnState.drawnCards ?? []).length}
                 </span>
               </div>
 
@@ -327,7 +327,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
             {/* ドローされたカード一覧 */}
             <div className="flex flex-wrap gap-2 mb-4 min-h-[48px]">
-              {gameState.turnState.drawnCards.map((cardId, i) => {
+              {(gameState.turnState.drawnCards ?? []).map((cardId, i) => {
                 const card = cardMaster[cardId];
                 if (!card) return null;
                 return (

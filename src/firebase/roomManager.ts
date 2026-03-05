@@ -100,13 +100,15 @@ export async function joinRoom(roomCode: string, uid: string, playerName: string
     connected: true,
   };
 
+  const currentOrder = Array.isArray(room.playerOrder) ? room.playerOrder : (room.playerOrder ? Object.values(room.playerOrder) as string[] : []);
+
   await set(playerRef(upperCode, uid), player);
-  await set(ref(db, `rooms/${upperCode}/playerOrder`), [...room.playerOrder, uid]);
+  await set(ref(db, `rooms/${upperCode}/playerOrder`), [...currentOrder, uid]);
 
   // 切断時に connected を false にする
   await setupDisconnect(upperCode, uid);
 
-  return { ...room, players: { ...room.players, [uid]: player }, playerOrder: [...room.playerOrder, uid] };
+  return { ...room, players: { ...room.players, [uid]: player }, playerOrder: [...currentOrder, uid] };
 }
 
 // ===== 切断検知 =====
@@ -118,9 +120,38 @@ async function setupDisconnect(roomCode: string, uid: string) {
 
 // ===== ルーム監視 =====
 
+/** Firebaseから取得したルームデータの配列フィールドを正規化する */
+function normalizeRoom(raw: Room): Room {
+  const room = { ...raw };
+  // playerOrderがFirebaseで消える（空配列→null）場合のガード
+  if (!Array.isArray(room.playerOrder)) {
+    room.playerOrder = room.playerOrder ? Object.values(room.playerOrder) : [];
+  }
+  // gameState内の配列フィールドも正規化
+  if (room.gameState) {
+    const gs = { ...room.gameState };
+    gs.drawPile = Array.isArray(gs.drawPile) ? gs.drawPile : [];
+    gs.contaminationStock = Array.isArray(gs.contaminationStock) ? gs.contaminationStock : [];
+    gs.responseStock = Array.isArray(gs.responseStock) ? gs.responseStock : [];
+    gs.responseDiscard = Array.isArray(gs.responseDiscard) ? gs.responseDiscard : [];
+    if (gs.turnState) {
+      gs.turnState = {
+        ...gs.turnState,
+        drawnCards: Array.isArray(gs.turnState.drawnCards) ? gs.turnState.drawnCards : [],
+      };
+    }
+    room.gameState = gs;
+  }
+  return room;
+}
+
 export function listenRoom(roomCode: string, callback: (room: Room | null) => void): Unsubscribe {
   return onValue(roomRef(roomCode), (snapshot) => {
-    callback(snapshot.exists() ? (snapshot.val() as Room) : null);
+    if (!snapshot.exists()) {
+      callback(null);
+      return;
+    }
+    callback(normalizeRoom(snapshot.val() as Room));
   });
 }
 
@@ -129,7 +160,7 @@ export function listenRoom(roomCode: string, callback: (room: Room | null) => vo
 export async function findRoom(roomCode: string): Promise<Room | null> {
   const upperCode = roomCode.toUpperCase();
   const snapshot = await get(roomRef(upperCode));
-  return snapshot.exists() ? (snapshot.val() as Room) : null;
+  return snapshot.exists() ? normalizeRoom(snapshot.val() as Room) : null;
 }
 
 // ===== ルーム退出 =====
@@ -143,7 +174,9 @@ export async function leaveRoom(roomCode: string, uid: string, isHost: boolean):
     await remove(playerRef(roomCode, uid));
     const snapshot = await get(ref(db, `rooms/${roomCode}/playerOrder`));
     if (snapshot.exists()) {
-      const order = (snapshot.val() as string[]).filter((id) => id !== uid);
+      const raw = snapshot.val();
+      const orderArr: string[] = Array.isArray(raw) ? raw : (raw ? Object.values(raw) : []);
+      const order = orderArr.filter((id) => id !== uid);
       await set(ref(db, `rooms/${roomCode}/playerOrder`), order);
     }
   }

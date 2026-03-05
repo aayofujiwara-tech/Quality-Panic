@@ -48,15 +48,39 @@ export function listenGameState(
   callback: (gameState: MultiplayerGameState | null) => void,
 ): Unsubscribe {
   return onValue(ref(db, `rooms/${roomCode}/gameState`), (snapshot) => {
-    callback(snapshot.exists() ? (snapshot.val() as MultiplayerGameState) : null);
+    if (!snapshot.exists()) {
+      callback(null);
+      return;
+    }
+    callback(normalizeGameState(snapshot.val() as MultiplayerGameState));
   });
 }
 
 // ===== ルーム全体の読み込み =====
 
+/** Firebaseから取得したGameStateの配列フィールドを正規化する */
+function normalizeGameState(gs: MultiplayerGameState): MultiplayerGameState {
+  return {
+    ...gs,
+    drawPile: Array.isArray(gs.drawPile) ? gs.drawPile : [],
+    contaminationStock: Array.isArray(gs.contaminationStock) ? gs.contaminationStock : [],
+    responseStock: Array.isArray(gs.responseStock) ? gs.responseStock : [],
+    responseDiscard: Array.isArray(gs.responseDiscard) ? gs.responseDiscard : [],
+    turnState: gs.turnState ? {
+      ...gs.turnState,
+      drawnCards: Array.isArray(gs.turnState.drawnCards) ? gs.turnState.drawnCards : [],
+    } : null,
+  };
+}
+
 export async function readRoom(roomCode: string): Promise<Room | null> {
   const snapshot = await get(ref(db, `rooms/${roomCode}`));
-  return snapshot.exists() ? (snapshot.val() as Room) : null;
+  if (!snapshot.exists()) return null;
+  const room = snapshot.val() as Room;
+  if (room.gameState) {
+    room.gameState = normalizeGameState(room.gameState);
+  }
+  return room;
 }
 
 // ===== ルームステータス更新 =====

@@ -11,6 +11,7 @@ import { GameOverScreen } from './components/GameOverScreen';
 import { RoomCreate } from './components/RoomCreate';
 import { RoomJoin } from './components/RoomJoin';
 import { WaitingRoom } from './components/WaitingRoom';
+import { MultiplayerGame } from './components/MultiplayerGame';
 
 type AppScreen =
   | { type: 'title' }
@@ -128,19 +129,13 @@ function App() {
       );
 
     case 'multiplayer':
-      // Step 3で MultiplayerGame コンポーネントを実装
       return (
-        <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-          <h1 className="text-3xl font-bold text-amber-400">対戦モード</h1>
-          <p className="text-gray-400">ルーム: {screen.roomCode}</p>
-          <p className="text-gray-500 text-sm">（Step 3で実装予定）</p>
-          <button
-            onClick={handleBackToTitle}
-            className="px-6 py-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
-          >
-            タイトルに戻る
-          </button>
-        </div>
+        <MultiplayerGame
+          roomCode={screen.roomCode}
+          uid={screen.uid}
+          initialRoom={screen.room}
+          onBack={handleBackToTitle}
+        />
       );
   }
 }

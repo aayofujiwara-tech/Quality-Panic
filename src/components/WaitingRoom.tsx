@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
-import { listenRoom, leaveRoom, updateRoomStatus } from '../firebase/roomManager';
+import { listenRoom, leaveRoom } from '../firebase/roomManager';
+import { initializeGameInRoom } from '../firebase/gameSync';
+import { initMultiplayerGame } from '../game/multiplayerEngine';
 import type { Room } from '../game/types';
 
 type Props = {
@@ -47,8 +49,12 @@ export function WaitingRoom({ roomCode, uid, onGameStart, onBack }: Props) {
 
   const handleStart = async () => {
     if (!canStart || !room) return;
-    // ステータスを playing に変更（Step 3でゲーム初期化処理を追加）
-    await updateRoomStatus(roomCode, 'playing');
+
+    // マルチプレイヤーゲームを初期化してFirebaseに書き込み
+    const { gameState, cardMaster, playerResponseHands } =
+      initMultiplayerGame(room.playerOrder);
+
+    await initializeGameInRoom(roomCode, gameState, cardMaster, playerResponseHands);
   };
 
   return (

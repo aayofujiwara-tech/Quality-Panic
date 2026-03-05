@@ -42,9 +42,9 @@ export function GameBoard({
         difficulty={state.difficulty}
       />
 
-      <div className="flex-1 p-6">
+      <div className="flex-1 p-3 sm:p-6">
         {state.phase === 'prepare' && (
-          <div className="flex flex-col items-center justify-center gap-6 py-12">
+          <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
             <div className="text-2xl font-bold text-amber-400">
               ラウンド {state.round} 準備中
             </div>
@@ -68,7 +68,7 @@ export function GameBoard({
         )}
 
         {isShipping && (
-          <div className="flex gap-8 items-start">
+          <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
             <DrawPile remaining={state.drawPile.length} defectRate={defectRate} drawPile={state.drawPile} />
             <div className="flex-1 flex flex-col">
               {/* アクティブな効果の表示 */}

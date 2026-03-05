@@ -28,13 +28,13 @@ export function RoomCreate({ onCreated, onBack }: Props) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 sm:gap-8 px-4">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-amber-400 mb-2">ルームを作る</h1>
-        <p className="text-gray-400">対戦相手にルームコードを伝えてください</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 mb-2">ルームを作る</h1>
+        <p className="text-sm sm:text-base text-gray-400">対戦相手にルームコードを伝えてください</p>
       </div>
 
-      <div className="flex flex-col gap-4 w-72">
+      <div className="flex flex-col gap-4 w-full max-w-[320px]">
         <div>
           <label className="block text-sm text-gray-400 mb-1">プレイヤー名</label>
           <input
@@ -55,7 +55,7 @@ export function RoomCreate({ onCreated, onBack }: Props) {
         <button
           onClick={handleCreate}
           disabled={status === 'creating'}
-          className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded-lg text-white font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
+          className="px-6 py-3 min-h-[44px] bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded-lg text-white font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
         >
           {status === 'creating' ? '作成中...' : 'ルームを作成'}
         </button>

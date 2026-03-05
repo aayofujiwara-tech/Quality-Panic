@@ -22,14 +22,17 @@ export function DrawPile({ remaining, defectRate, drawPile }: Props) {
   const events = drawPile.filter(c => c.type === 'event').length;
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="w-24 h-32 bg-gray-700 border-2 border-gray-500 rounded-lg flex flex-col items-center justify-center shadow-lg">
-        <div className="text-3xl mb-1">📦</div>
-        <div className="text-sm text-gray-300">山札</div>
-        <div className="text-lg font-bold text-white">{remaining}枚</div>
+    <div className="flex flex-row md:flex-col items-center gap-3 md:gap-2 bg-gray-800/50 md:bg-transparent rounded-lg p-2 md:p-0">
+      {/* 山札アイコン */}
+      <div className="w-16 h-20 md:w-24 md:h-32 bg-gray-700 border-2 border-gray-500 rounded-lg flex flex-col items-center justify-center shadow-lg shrink-0">
+        <div className="text-xl md:text-3xl mb-0.5 md:mb-1">📦</div>
+        <div className="text-xs md:text-sm text-gray-300">山札</div>
+        <div className="text-sm md:text-lg font-bold text-white">{remaining}枚</div>
       </div>
-      <div className="w-24">
-        <div className="text-xs text-gray-400 text-center mb-1">不良率 {ratePercent}%</div>
+
+      {/* 不良率バー＋内訳 */}
+      <div className="flex flex-col gap-1 min-w-[80px] md:w-24">
+        <div className="text-xs text-gray-400 text-center">不良率 {ratePercent}%</div>
         <div className="w-full bg-gray-600 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all duration-300 ${barColor}`}
@@ -37,32 +40,36 @@ export function DrawPile({ remaining, defectRate, drawPile }: Props) {
           />
         </div>
       </div>
+
       {/* カテゴリ別内訳 */}
-      <div className="w-28 text-xs space-y-1 mt-1">
-        <div className="flex justify-between text-blue-300">
-          <span>📦 製品</span>
+      <div className="flex flex-row md:flex-col gap-2 md:gap-1 md:w-28 text-xs md:mt-1">
+        <div className="flex gap-1 md:justify-between text-blue-300">
+          <span className="hidden md:inline">📦 製品</span>
+          <span className="md:hidden">📦</span>
           <span>{products}</span>
         </div>
-        <div className="flex justify-between text-gray-300">
-          <span>⚠️ 不具合</span>
+        <div className="flex gap-1 md:justify-between text-gray-300">
+          <span className="hidden md:inline">⚠️ 不具合</span>
+          <span className="md:hidden">⚠️</span>
           <span>{yellow + red + black}</span>
         </div>
-        <div className="flex justify-between pl-3">
+        <div className="hidden md:flex justify-between pl-3">
           <span className="text-yellow-400">黄</span>
           <span className="text-yellow-400">{yellow}</span>
         </div>
-        <div className="flex justify-between pl-3">
+        <div className="hidden md:flex justify-between pl-3">
           <span className="text-red-400">赤</span>
           <span className="text-red-400">{red}</span>
         </div>
         {black > 0 && (
-          <div className="flex justify-between pl-3">
+          <div className="hidden md:flex justify-between pl-3">
             <span className="text-gray-100">黒</span>
             <span className="text-gray-100">{black}</span>
           </div>
         )}
-        <div className="flex justify-between text-purple-300">
-          <span>⚡ イベント</span>
+        <div className="flex gap-1 md:justify-between text-purple-300">
+          <span className="hidden md:inline">⚡ イベント</span>
+          <span className="md:hidden">⚡</span>
           <span>{events}</span>
         </div>
       </div>

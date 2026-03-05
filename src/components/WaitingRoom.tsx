@@ -61,23 +61,23 @@ export function WaitingRoom({ roomCode, uid, onGameStart, onBack }: Props) {
   };
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 sm:gap-8 px-4">
       <div className="text-center">
-        <h1 className="text-4xl font-bold text-amber-400 mb-2">待機中</h1>
-        <p className="text-gray-400">対戦相手の参加を待っています</p>
+        <h1 className="text-3xl sm:text-4xl font-bold text-amber-400 mb-2">待機中</h1>
+        <p className="text-sm sm:text-base text-gray-400">対戦相手の参加を待っています</p>
       </div>
 
       {/* ルームコード表示 */}
-      <div className="bg-gray-800 border border-gray-600 rounded-xl p-6 text-center">
+      <div className="bg-gray-800 border border-gray-600 rounded-xl p-4 sm:p-6 text-center w-full max-w-[320px]">
         <div className="text-sm text-gray-400 mb-2">ルームコード</div>
-        <div className="text-4xl font-mono font-bold text-white tracking-widest">
+        <div className="text-3xl sm:text-4xl font-mono font-bold text-white tracking-widest">
           {roomCode}
         </div>
         <div className="text-xs text-gray-500 mt-2">このコードを対戦相手に伝えてください</div>
       </div>
 
       {/* プレイヤーリスト */}
-      <div className="w-72 flex flex-col gap-3">
+      <div className="w-full max-w-[320px] flex flex-col gap-3">
         <div className="text-sm text-gray-400 text-center">プレイヤー ({playerCount}/2)</div>
         {players.map(([playerUid, info]) => (
           <div
@@ -111,12 +111,12 @@ export function WaitingRoom({ roomCode, uid, onGameStart, onBack }: Props) {
       </div>
 
       {/* ボタン */}
-      <div className="flex flex-col gap-3 w-72">
+      <div className="flex flex-col gap-3 w-full max-w-[320px]">
         {isHost && (
           <button
             onClick={handleStart}
             disabled={!canStart}
-            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded-lg text-white font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
+            className="px-6 py-3 min-h-[44px] bg-blue-600 hover:bg-blue-500 disabled:bg-gray-600 rounded-lg text-white font-medium transition-all cursor-pointer disabled:cursor-not-allowed"
           >
             {canStart ? 'ゲーム開始' : '相手を待っています...'}
           </button>
@@ -125,7 +125,7 @@ export function WaitingRoom({ roomCode, uid, onGameStart, onBack }: Props) {
         <button
           onClick={handleLeave}
           disabled={leaving}
-          className="px-6 py-2 text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
+          className="px-6 py-2 min-h-[44px] text-gray-400 hover:text-red-400 transition-colors cursor-pointer"
         >
           {isHost ? 'ルームを閉じる' : 'ルームを退出'}
         </button>

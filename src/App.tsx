@@ -2,7 +2,7 @@ import { useState, useCallback } from 'react';
 import type { GameState, Difficulty } from './game/types';
 import {
   initGame, prepareRound, drawCard, stopDrawing, nextRound,
-  useResponseCard, skipResponseCard, useDesignChange,
+  useResponseCard, skipResponseCard, useDesignChange, dismissEvent,
 } from './game/gameEngine';
 import { TitleScreen } from './components/TitleScreen';
 import { GameBoard } from './components/GameBoard';
@@ -46,8 +46,12 @@ function App() {
       if (card?.responseType === 'design_change') {
         return useDesignChange(prev, cardIndex);
       }
-      return prev; // 設計変更以外は出荷フェーズ中にクリックしても無視
+      return prev;
     });
+  }, []);
+
+  const handleDismissEvent = useCallback(() => {
+    setGameState((prev) => prev ? dismissEvent(prev) : prev);
   }, []);
 
   const handleRestart = useCallback(() => {
@@ -72,6 +76,7 @@ function App() {
       onUseResponseCard={handleUseResponseCard}
       onSkipResponseCard={handleSkipResponseCard}
       onUseDesignChange={handleUseDesignChange}
+      onDismissEvent={handleDismissEvent}
     />
   );
 }

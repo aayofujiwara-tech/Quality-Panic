@@ -1,4 +1,4 @@
-import type { GameState, Card, ProductCard, DefectCard, ResponseCard, Difficulty, RoundResult } from './types';
+import type { GameState, Card, ProductCard, DefectCard, EventCard, ResponseCard, Difficulty, RoundResult } from './types';
 import { MAX_ROUNDS, PANIC_THRESHOLD, MAX_CONTAMINATION_PER_ROUND, PANIC_CONTAMINATION_PENALTY, RESPONSE_HAND_LIMIT } from './constants';
 import { createInitialDrawPile, createContaminationStock, createResponseStock, shuffle } from './cards';
 
@@ -25,6 +25,7 @@ export function initGame(difficulty: Difficulty): GameState {
     panicThreshold: PANIC_THRESHOLD,
 
     pendingDefect: null,
+    pendingEvent: null,
 
     snsFireActive: false,
     forcedDraws: 0,
@@ -44,38 +45,41 @@ export function initGame(difficulty: Difficulty): GameState {
 export function prepareRound(state: GameState): GameState {
   const newState = { ...state };
 
-  if (state.round === 1) {
-    newState.phase = 'shipping';
-    return newState;
+  if (state.round > 1) {
+    // 前ラウンドの確定利益から投入枚数を計算
+    const prevResult = state.roundHistory[state.roundHistory.length - 1];
+    const prevProfit = prevResult ? prevResult.profit : 0;
+    let contaminationCount = Math.ceil(prevProfit / 2);
+    contaminationCount = Math.min(contaminationCount, MAX_CONTAMINATION_PER_ROUND);
+
+    const stockCopy = [...state.contaminationStock];
+    const drawPileCopy = [...state.drawPile];
+
+    const toAdd = Math.min(contaminationCount, stockCopy.length);
+    for (let i = 0; i < toAdd; i++) {
+      drawPileCopy.push(stockCopy.shift()!);
+    }
+
+    newState.contaminationStock = stockCopy;
+    newState.drawPile = shuffle(drawPileCopy);
   }
 
-  // 前ラウンドの確定利益から投入枚数を計算
-  const prevResult = state.roundHistory[state.roundHistory.length - 1];
-  const prevProfit = prevResult ? prevResult.profit : 0;
-  let contaminationCount = Math.ceil(prevProfit / 2);
-  contaminationCount = Math.min(contaminationCount, MAX_CONTAMINATION_PER_ROUND);
-
-  const stockCopy = [...state.contaminationStock];
-  const drawPileCopy = [...state.drawPile];
-
-  const toAdd = Math.min(contaminationCount, stockCopy.length);
-  for (let i = 0; i < toAdd; i++) {
-    drawPileCopy.push(stockCopy.shift()!);
-  }
-
-  newState.contaminationStock = stockCopy;
-  newState.drawPile = shuffle(drawPileCopy);
   newState.phase = 'shipping';
   newState.currentRoundProfit = 0;
   newState.currentRoundProducts = [];
   newState.currentDefectPoints = 0;
   newState.panicThreshold = PANIC_THRESHOLD;
   newState.pendingDefect = null;
+  newState.pendingEvent = null;
   newState.lastDrawnCard = null;
   newState.drawnCardsThisRound = [];
   newState.snsFireActive = false;
   newState.forcedDraws = 0;
   newState.waterInspectionActive = false;
+
+  // 新人配属効果: 前ラウンドで発動していたら今ラウンドでプレビュー有効
+  newState.canPreviewFirstCard = state.rookieNextRound;
+  newState.rookieNextRound = false;
 
   return newState;
 }
@@ -88,11 +92,16 @@ export function drawCard(state: GameState): GameState {
 
   const newDrawPile = [...state.drawPile];
   const card = newDrawPile.shift()!;
+
+  // 強制めくり残りをデクリメント
+  const newForcedDraws = state.forcedDraws > 0 ? state.forcedDraws - 1 : 0;
+
   const newState: GameState = {
     ...state,
     drawPile: newDrawPile,
     lastDrawnCard: card,
     drawnCardsThisRound: [...state.drawnCardsThisRound, card],
+    forcedDraws: newForcedDraws,
   };
 
   switch (card.type) {
@@ -120,7 +129,7 @@ function handleDefectCard(state: GameState, card: DefectCard): GameState {
   if (state.waterInspectionActive) {
     return {
       ...state,
-      waterInspectionActive: false, // 1枚分消費
+      waterInspectionActive: false,
     };
   }
 
@@ -136,7 +145,6 @@ function handleDefectCard(state: GameState, card: DefectCard): GameState {
     };
   }
 
-  // 手札に対応カードがなければそのまま累積
   return applyDefectPoints(state, card);
 }
 
@@ -149,12 +157,18 @@ function applyDefectPoints(state: GameState, card: DefectCard): GameState {
     points = state.panicThreshold;
   }
 
+  // SNS炎上効果: 不具合Ptが2倍
+  if (state.snsFireActive) {
+    points *= 2;
+  }
+
   const newDefectPoints = state.currentDefectPoints + points;
 
   const newState: GameState = {
     ...state,
     currentDefectPoints: newDefectPoints,
     pendingDefect: null,
+    snsFireActive: false, // 使い切り
   };
 
   if (newDefectPoints >= state.panicThreshold) {
@@ -182,7 +196,6 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
 
   switch (card.responseType) {
     case 'first_aid': {
-      // 応急処置: 不具合無効化 → 捨て山へ
       newState = {
         ...newState,
         responseDiscard: [...newState.responseDiscard, card],
@@ -190,7 +203,6 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
       break;
     }
     case 'root_cause': {
-      // 原因調査: 無効化 + 山札から不具合1枚除外 → 捨て山へ
       const drawPileCopy = [...newState.drawPile];
       const defectIdx = drawPileCopy.findIndex(c => c.type === 'defect');
       if (defectIdx >= 0) {
@@ -204,7 +216,6 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
       break;
     }
     case 'inspection': {
-      // 水際検査: この不具合無効化 + 次の不具合も自動無効化 → 捨て山へ
       newState = {
         ...newState,
         waterInspectionActive: true,
@@ -235,11 +246,9 @@ export function useDesignChange(state: GameState, cardIndex: number): GameState 
   const newHand = state.responseHand.filter((_, i) => i !== cardIndex);
   const stockCopy = [...state.contaminationStock];
 
-  // 汚染ストックから最大2枚を永久除外
   const removeCount = Math.min(2, stockCopy.length);
   stockCopy.splice(0, removeCount);
 
-  // 設計変更はゲームから除外（捨て山に行かない）
   return {
     ...state,
     responseHand: newHand,
@@ -247,9 +256,69 @@ export function useDesignChange(state: GameState, cardIndex: number): GameState 
   };
 }
 
-function handleEventCard(state: GameState, _card: Card): GameState {
-  // Phase 3で実装
-  return state;
+// イベントカード処理: 効果を適用してイベント表示フェーズへ
+function handleEventCard(state: GameState, card: EventCard): GameState {
+  let newState: GameState = {
+    ...state,
+    phase: 'event_display',
+    pendingEvent: card,
+  };
+
+  switch (card.eventType) {
+    case 'sns_fire':
+      // 次の不具合Ptが2倍
+      newState.snsFireActive = true;
+      break;
+
+    case 'deadline_pressure':
+      // あと最低2枚めくらないといけない
+      newState.forcedDraws = 2;
+      break;
+
+    case 'veteran_retire':
+      // パニック閾値が一時的に2に下がる（このラウンド中）
+      newState.panicThreshold = 2;
+      // 現在の不具合Ptが新閾値以上ならパニック
+      if (newState.currentDefectPoints >= 2) {
+        return handlePanic(newState);
+      }
+      break;
+
+    case 'kaizen': {
+      // 不具合1枚を無効化: 直近の不具合カードのPtを取り消す
+      const drawnDefects = state.drawnCardsThisRound.filter(
+        (c): c is DefectCard => c.type === 'defect'
+      );
+      if (drawnDefects.length > 0 && state.currentDefectPoints > 0) {
+        const lastDefect = drawnDefects[drawnDefects.length - 1];
+        newState.currentDefectPoints = Math.max(0, state.currentDefectPoints - lastDefect.defectPoints);
+      }
+      break;
+    }
+
+    case 'iso_audit':
+      // 不具合Pt=0ならボーナス3点
+      if (state.currentDefectPoints === 0) {
+        newState.currentRoundProfit = state.currentRoundProfit + 3;
+      }
+      break;
+
+    case 'rookie':
+      // 次ラウンドのみ、1枚目を見てから続行/中止選択可
+      newState.rookieNextRound = true;
+      break;
+  }
+
+  return newState;
+}
+
+// イベント表示を閉じて出荷フェーズに戻る
+export function dismissEvent(state: GameState): GameState {
+  return {
+    ...state,
+    phase: 'shipping',
+    pendingEvent: null,
+  };
 }
 
 // パニック発生
@@ -278,6 +347,7 @@ function handlePanic(state: GameState): GameState {
     currentRoundProfit: 0,
     currentRoundProducts: [],
     pendingDefect: null,
+    pendingEvent: null,
   };
 }
 
@@ -293,7 +363,7 @@ function drawFromResponseStock(
 
   for (let i = 0; i < count; i++) {
     if (currentStock.length === 0) {
-      if (currentDiscard.length === 0) break; // 全て尽きた
+      if (currentDiscard.length === 0) break;
       currentStock = shuffle(currentDiscard);
       currentDiscard = [];
     }
@@ -314,12 +384,10 @@ export function stopDrawing(state: GameState): GameState {
     cardsDrawn: state.drawnCardsThisRound.length,
   };
 
-  // 対応カード入手枚数: 0〜2点→2枚, 3〜5点→1枚, 6点+→なし
   let responseDrawCount = 0;
   if (profit <= 2) responseDrawCount = 2;
   else if (profit <= 5) responseDrawCount = 1;
 
-  // 手札上限を考慮
   const handSpace = RESPONSE_HAND_LIMIT - state.responseHand.length;
   responseDrawCount = Math.min(responseDrawCount, handSpace);
 
@@ -340,6 +408,13 @@ export function stopDrawing(state: GameState): GameState {
   };
 }
 
+// 止められるかチェック（強制めくりがあると止められない）
+export function canStop(state: GameState): boolean {
+  if (state.drawnCardsThisRound.length === 0) return false;
+  if (state.forcedDraws > 0) return false;
+  return true;
+}
+
 // 次のラウンドへ
 export function nextRound(state: GameState): GameState {
   const nextRoundNum = state.round + 1;
@@ -357,6 +432,7 @@ export function nextRound(state: GameState): GameState {
     currentDefectPoints: 0,
     panicThreshold: PANIC_THRESHOLD,
     pendingDefect: null,
+    pendingEvent: null,
     lastDrawnCard: null,
     drawnCardsThisRound: [],
     snsFireActive: false,

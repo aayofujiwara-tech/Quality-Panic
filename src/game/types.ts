@@ -37,7 +37,9 @@ export type ResponseCard = {
 };
 
 // ゲームフェーズ
-export type GamePhase = 'title' | 'prepare' | 'shipping' | 'result' | 'game_over';
+// 'defect_response': 不具合カードが出て対応カード使用を判断中
+// 'event_display': イベントカード発動表示中
+export type GamePhase = 'title' | 'prepare' | 'shipping' | 'defect_response' | 'event_display' | 'result' | 'game_over';
 
 // ゲーム状態
 export type GameState = {
@@ -63,7 +65,13 @@ export type GameState = {
   currentDefectPoints: number;
   panicThreshold: number;
 
-  // イベント効果フラグ（Phase 3で本格利用）
+  // 不具合対応待ち
+  pendingDefect: DefectCard | null;
+
+  // イベント表示待ち
+  pendingEvent: EventCard | null;
+
+  // イベント効果フラグ
   snsFireActive: boolean;
   forcedDraws: number;
   rookieNextRound: boolean;

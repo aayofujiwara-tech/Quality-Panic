@@ -1,6 +1,7 @@
 import type { Difficulty } from './types';
 
 export const MAX_ROUNDS = 8;
+export const MAX_ROUNDS_MULTI = 7;
 export const PANIC_THRESHOLD = 3;
 export const RESPONSE_HAND_LIMIT = 3;
 export const MAX_CONTAMINATION_PER_ROUND = 4;
@@ -49,3 +50,7 @@ export const RESPONSE_CARDS = {
   inspection: { count: 2, name: '水際検査', description: '次の不具合も自動無効化（2枚分）' },
   design_change: { count: 1, name: '設計変更', description: '汚染ストックから2枚を永久除外' },
 };
+
+// ===== 2人対戦用定数 =====
+export const ROOM_CODE_LENGTH = 4;
+export const DISCONNECT_TIMEOUT_MS = 30_000;  // 30秒

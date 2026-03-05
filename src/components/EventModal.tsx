@@ -1,4 +1,4 @@
-import type { EventCard, GameState } from '../game/types';
+import type { EventCard, DefectCard, GameState } from '../game/types';
 
 type Props = {
   event: EventCard;
@@ -34,10 +34,17 @@ function getEffectDescription(event: EventCard, state: GameState): string {
       return `パニック閾値が3→2に低下！（このラウンドのみ）${
         state.currentDefectPoints >= 2 ? '\n現在の不具合Ptが閾値以上のため、パニック発生！' : ''
       }`;
-    case 'kaizen':
-      return state.currentDefectPoints > 0
-        ? '直近の不具合1枚が無効化されました！'
-        : '現在不具合がないため、効果なし';
+    case 'kaizen': {
+      // エンジンが既にPt減算済みなので、drawnCardsから直近不具合を見て判定
+      const drawnDefects = state.drawnCardsThisRound.filter(
+        (c): c is DefectCard => c.type === 'defect'
+      );
+      if (drawnDefects.length > 0) {
+        const last = drawnDefects[drawnDefects.length - 1];
+        return `直近の不具合「${last.name}」(${last.defectPoints}Pt)が無効化されました！`;
+      }
+      return '現在不具合がないため、効果なし';
+    }
     case 'iso_audit':
       return state.currentDefectPoints === 0
         ? 'ボーナス3点獲得！不具合ゼロの品質管理が評価されました！'

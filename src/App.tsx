@@ -3,6 +3,7 @@ import type { GameState, Difficulty } from './game/types';
 import {
   initGame, prepareRound, drawCard, stopDrawing, nextRound,
   useResponseCard, skipResponseCard, useDesignChange, dismissEvent,
+  selectSamplingCard,
 } from './game/gameEngine';
 import { TitleScreen } from './components/TitleScreen';
 import { GameBoard } from './components/GameBoard';
@@ -54,6 +55,10 @@ function App() {
     setGameState((prev) => prev ? dismissEvent(prev) : prev);
   }, []);
 
+  const handleSelectSamplingCard = useCallback((index: number) => {
+    setGameState((prev) => prev ? selectSamplingCard(prev, index) : prev);
+  }, []);
+
   const handleRestart = useCallback(() => {
     setGameState(null);
   }, []);
@@ -77,6 +82,7 @@ function App() {
       onSkipResponseCard={handleSkipResponseCard}
       onUseDesignChange={handleUseDesignChange}
       onDismissEvent={handleDismissEvent}
+      onSelectSamplingCard={handleSelectSamplingCard}
     />
   );
 }

@@ -12,7 +12,7 @@ const eventIcons: Record<string, string> = {
   veteran_retire: '👴',
   kaizen: '💡',
   iso_audit: '📋',
-  rookie: '🎒',
+  sampling_inspection: '🔍',
 };
 
 const eventColors: Record<string, string> = {
@@ -21,7 +21,7 @@ const eventColors: Record<string, string> = {
   veteran_retire: 'border-red-500 bg-red-900/40',
   kaizen: 'border-green-500 bg-green-900/40',
   iso_audit: 'border-blue-500 bg-blue-900/40',
-  rookie: 'border-cyan-500 bg-cyan-900/40',
+  sampling_inspection: 'border-teal-500 bg-teal-900/40',
 };
 
 function getEffectDescription(event: EventCard, state: GameState): string {
@@ -49,8 +49,8 @@ function getEffectDescription(event: EventCard, state: GameState): string {
       return state.currentDefectPoints === 0
         ? 'ボーナス3点獲得！不具合ゼロの品質管理が評価されました！'
         : '不具合が検出されており、ボーナスなし';
-    case 'rookie':
-      return '次のラウンドで1枚目を見てから続行/中止を選べます';
+    case 'sampling_inspection':
+      return '次ラウンド開始時、山札から3枚を抜き取り検査。1枚を選んで確保できます';
     default:
       return event.description;
   }

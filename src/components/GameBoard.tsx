@@ -9,6 +9,7 @@ import { RoundHistory } from './RoundHistory';
 import { RoundResultView } from './RoundResult';
 import { DefectResponse } from './DefectResponse';
 import { EventModal } from './EventModal';
+import { SamplingModal } from './SamplingModal';
 
 type Props = {
   state: GameState;
@@ -20,11 +21,13 @@ type Props = {
   onSkipResponseCard: () => void;
   onUseDesignChange: (index: number) => void;
   onDismissEvent: () => void;
+  onSelectSamplingCard: (index: number) => void;
 };
 
 export function GameBoard({
   state, onDraw, onStop, onNextRound, onPrepare,
   onUseResponseCard, onSkipResponseCard, onUseDesignChange, onDismissEvent,
+  onSelectSamplingCard,
 }: Props) {
   const defectRate = getDefectRate(state.drawPile);
   const isShipping = state.phase === 'shipping' || state.phase === 'defect_response' || state.phase === 'event_display';
@@ -50,9 +53,9 @@ export function GameBoard({
                 汚染カードが山札に投入されます...
               </div>
             )}
-            {state.canPreviewFirstCard && (
-              <div className="text-sm text-cyan-400">
-                🎒 新人配属効果: 1枚目を見てから判断できます
+            {state.samplingNextRound && (
+              <div className="text-sm text-teal-400">
+                🔍 抜き取り検査効果: 3枚から1枚を選べます
               </div>
             )}
             <button
@@ -132,6 +135,14 @@ export function GameBoard({
         />
       )}
 
+      {/* 抜き取り検査モーダル */}
+      {state.phase === 'sampling' && state.samplingCards.length > 0 && (
+        <SamplingModal
+          cards={state.samplingCards}
+          onSelect={onSelectSamplingCard}
+        />
+      )}
+
       <RoundHistory history={state.roundHistory} currentRound={state.round} />
     </div>
   );
@@ -153,8 +164,8 @@ function ActiveEffects({ state }: { state: GameState }) {
   if (state.waterInspectionActive) {
     effects.push({ icon: '🛡️', text: '水際検査: 次の不具合自動無効', color: 'text-emerald-400' });
   }
-  if (state.canPreviewFirstCard && state.drawnCardsThisRound.length === 0) {
-    effects.push({ icon: '🎒', text: '新人配属: 1枚目プレビュー可', color: 'text-cyan-400' });
+  if (state.samplingNextRound) {
+    effects.push({ icon: '🔍', text: '抜き取り検査: 次ラウンド発動', color: 'text-teal-400' });
   }
 
   if (effects.length === 0) return null;

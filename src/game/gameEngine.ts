@@ -29,8 +29,8 @@ export function initGame(difficulty: Difficulty): GameState {
 
     snsFireActive: false,
     forcedDraws: 0,
-    rookieNextRound: false,
-    canPreviewFirstCard: false,
+    samplingNextRound: false,
+    samplingCards: [],
     waterInspectionActive: false,
 
     roundHistory: [],
@@ -41,7 +41,7 @@ export function initGame(difficulty: Difficulty): GameState {
   };
 }
 
-// 準備フェーズ: 汚染投入
+// 準備フェーズ: 汚染投入 → 抜き取り検査チェック → 出荷開始
 export function prepareRound(state: GameState): GameState {
   const newState = { ...state };
 
@@ -64,7 +64,7 @@ export function prepareRound(state: GameState): GameState {
     newState.drawPile = shuffle(drawPileCopy);
   }
 
-  newState.phase = 'shipping';
+  // ラウンド状態リセット
   newState.currentRoundProfit = 0;
   newState.currentRoundProducts = [];
   newState.currentDefectPoints = 0;
@@ -77,9 +77,62 @@ export function prepareRound(state: GameState): GameState {
   newState.forcedDraws = 0;
   newState.waterInspectionActive = false;
 
-  // 新人配属効果: 前ラウンドで発動していたら今ラウンドでプレビュー有効
-  newState.canPreviewFirstCard = state.rookieNextRound;
-  newState.rookieNextRound = false;
+  // 抜き取り検査: 前ラウンドでフラグが立っていたら3枚公開
+  if (state.samplingNextRound && newState.drawPile.length >= 3) {
+    const pile = [...newState.drawPile];
+    const revealed = pile.splice(0, 3);
+    newState.drawPile = pile;
+    newState.samplingCards = revealed;
+    newState.samplingNextRound = false;
+    newState.phase = 'sampling';
+    return newState;
+  }
+
+  newState.samplingNextRound = false;
+  newState.samplingCards = [];
+  newState.phase = 'shipping';
+  return newState;
+}
+
+// 抜き取り検査: プレイヤーが3枚から1枚を選択
+export function selectSamplingCard(state: GameState, index: number): GameState {
+  const cards = state.samplingCards;
+  if (index < 0 || index >= cards.length) return state;
+
+  const selected = cards[index];
+  const remaining = cards.filter((_, i) => i !== index);
+
+  // 残り2枚を山札に戻してシャッフル
+  const newDrawPile = shuffle([...state.drawPile, ...remaining]);
+
+  let newState: GameState = {
+    ...state,
+    drawPile: newDrawPile,
+    samplingCards: [],
+  };
+
+  // 選択したカードの効果を適用
+  switch (selected.type) {
+    case 'product':
+      // 製品カード → このラウンドの利益として即確保
+      newState.currentRoundProfit = newState.currentRoundProfit + selected.value;
+      newState.currentRoundProducts = [...newState.currentRoundProducts, selected];
+      newState.phase = 'shipping';
+      break;
+
+    case 'defect':
+      // 不具合カード → ゲームから除外（山札に戻さない＝捨て札）
+      newState.phase = 'shipping';
+      break;
+
+    case 'event':
+      // イベントカード → 即座に効果発動
+      newState = applyEventEffect(newState, selected);
+      // イベント表示モーダルを出す
+      newState.phase = 'event_display';
+      newState.pendingEvent = selected;
+      break;
+  }
 
   return newState;
 }
@@ -258,34 +311,39 @@ export function useDesignChange(state: GameState, cardIndex: number): GameState 
 
 // イベントカード処理: 効果を適用してイベント表示フェーズへ
 function handleEventCard(state: GameState, card: EventCard): GameState {
-  let newState: GameState = {
-    ...state,
+  let newState = applyEventEffect(state, card);
+  newState = {
+    ...newState,
     phase: 'event_display',
     pendingEvent: card,
   };
 
+  // ベテラン退職で即パニック判定
+  if (card.eventType === 'veteran_retire' && newState.currentDefectPoints >= newState.panicThreshold) {
+    return handlePanic(newState);
+  }
+
+  return newState;
+}
+
+// イベント効果を適用（handleEventCardとselectSamplingCardで共用）
+function applyEventEffect(state: GameState, card: EventCard): GameState {
+  const newState = { ...state };
+
   switch (card.eventType) {
     case 'sns_fire':
-      // 次の不具合Ptが2倍
       newState.snsFireActive = true;
       break;
 
     case 'deadline_pressure':
-      // あと最低2枚めくらないといけない
       newState.forcedDraws = 2;
       break;
 
     case 'veteran_retire':
-      // パニック閾値が一時的に2に下がる（このラウンド中）
       newState.panicThreshold = 2;
-      // 現在の不具合Ptが新閾値以上ならパニック
-      if (newState.currentDefectPoints >= 2) {
-        return handlePanic(newState);
-      }
       break;
 
     case 'kaizen': {
-      // 不具合1枚を無効化: 直近の不具合カードのPtを取り消す
       const drawnDefects = state.drawnCardsThisRound.filter(
         (c): c is DefectCard => c.type === 'defect'
       );
@@ -297,15 +355,13 @@ function handleEventCard(state: GameState, card: EventCard): GameState {
     }
 
     case 'iso_audit':
-      // 不具合Pt=0ならボーナス3点
       if (state.currentDefectPoints === 0) {
         newState.currentRoundProfit = state.currentRoundProfit + 3;
       }
       break;
 
-    case 'rookie':
-      // 次ラウンドのみ、1枚目を見てから続行/中止選択可
-      newState.rookieNextRound = true;
+    case 'sampling_inspection':
+      newState.samplingNextRound = true;
       break;
   }
 

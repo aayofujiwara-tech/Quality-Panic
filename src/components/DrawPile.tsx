@@ -4,9 +4,10 @@ type Props = {
   remaining: number;
   defectRate: number;
   drawPile: Card[];
+  nextContamination?: { count: number; tentative: boolean };
 };
 
-export function DrawPile({ remaining, defectRate, drawPile }: Props) {
+export function DrawPile({ remaining, defectRate, drawPile, nextContamination }: Props) {
   const ratePercent = Math.round(defectRate * 100);
   const barColor =
     ratePercent < 20 ? 'bg-green-500' :
@@ -28,11 +29,13 @@ export function DrawPile({ remaining, defectRate, drawPile }: Props) {
         <div className="text-xl md:text-3xl mb-0.5 md:mb-1">📦</div>
         <div className="text-xs md:text-sm text-gray-300">山札</div>
         <div className="text-sm md:text-lg font-bold text-white">{remaining}枚</div>
+        <div className={`text-[10px] md:text-xs ${ratePercent < 20 ? 'text-green-400' : ratePercent < 40 ? 'text-yellow-400' : 'text-red-400'}`}>
+          (不具合 {ratePercent}%)
+        </div>
       </div>
 
       {/* 不良率バー＋内訳 */}
       <div className="flex flex-col gap-1 min-w-[80px] md:w-24">
-        <div className="text-xs text-gray-400 text-center">不良率 {ratePercent}%</div>
         <div className="w-full bg-gray-600 rounded-full h-2">
           <div
             className={`h-2 rounded-full transition-all duration-300 ${barColor}`}
@@ -73,6 +76,15 @@ export function DrawPile({ remaining, defectRate, drawPile }: Props) {
           <span>{events}</span>
         </div>
       </div>
+
+      {/* 次ラウンド汚染予測 */}
+      {nextContamination && (
+        <div className="text-xs text-center md:w-28 px-2 py-1 rounded bg-red-900/30 border border-red-800/50">
+          <span className="text-red-300">
+            次R汚染: <span className="font-bold text-red-200">+{nextContamination.count}枚{nextContamination.tentative ? '〜' : ''}</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }

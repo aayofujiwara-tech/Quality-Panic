@@ -1,5 +1,6 @@
 import type { GameState } from '../game/types';
 import { getDefectRate, canStop } from '../game/gameEngine';
+import { MAX_CONTAMINATION_PER_ROUND } from '../game/constants';
 import { StatusBar } from './StatusBar';
 import { DrawPile } from './DrawPile';
 import { DrawnCards } from './DrawnCards';
@@ -31,6 +32,20 @@ export function GameBoard({
 }: Props) {
   const defectRate = getDefectRate(state.drawPile);
   const isShipping = state.phase === 'shipping' || state.phase === 'defect_response' || state.phase === 'event_display';
+
+  // 次ラウンド汚染予測（出荷中は現在の利益から予測）
+  const nextContamination = (() => {
+    if (state.round >= state.maxRounds) return undefined;
+    if (isShipping) {
+      const count = Math.min(
+        Math.ceil(state.currentRoundProfit / 2),
+        MAX_CONTAMINATION_PER_ROUND,
+        state.contaminationStock.length,
+      );
+      return { count, tentative: true };
+    }
+    return undefined;
+  })();
 
   return (
     <div className="flex flex-col min-h-screen">
@@ -69,7 +84,7 @@ export function GameBoard({
 
         {isShipping && (
           <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
-            <DrawPile remaining={state.drawPile.length} defectRate={defectRate} drawPile={state.drawPile} />
+            <DrawPile remaining={state.drawPile.length} defectRate={defectRate} drawPile={state.drawPile} nextContamination={nextContamination} />
             <div className="flex-1 flex flex-col">
               {/* アクティブな効果の表示 */}
               <ActiveEffects state={state} />

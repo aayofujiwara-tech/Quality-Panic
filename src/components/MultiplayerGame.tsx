@@ -93,7 +93,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   const [localPhase, setLocalPhase] = useState<LocalPhase>('prepare');
   const [pendingDefect, setPendingDefect] = useState<DefectCard | null>(null);
   const [pendingEvent, setPendingEvent] = useState<EventCard | null>(null);
-  const [lastDrawnCard, setLastDrawnCard] = useState<Card | null>(null);
+  const [, setLastDrawnCard] = useState<Card | null>(null);
   const [turnProfit, setTurnProfit] = useState(0);
   const [turnPanicked, setTurnPanicked] = useState(false);
   const [myResponseHand, setMyResponseHand] = useState<ResponseCard[]>([]);

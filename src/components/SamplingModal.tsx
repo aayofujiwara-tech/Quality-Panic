@@ -3,6 +3,7 @@ import type { Card, DefectCard } from '../game/types';
 type Props = {
   cards: Card[];
   onSelect: (index: number) => void;
+  remaining?: number;
 };
 
 function cardIcon(card: Card): string {
@@ -53,7 +54,7 @@ function cardEffect(card: Card): string {
   }
 }
 
-export function SamplingModal({ cards, onSelect }: Props) {
+export function SamplingModal({ cards, onSelect, remaining = 0 }: Props) {
   return (
     <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50">
       <div className="border-2 border-teal-500 bg-gray-900/95 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-2xl w-full sm:mx-4 shadow-2xl max-h-[85vh] overflow-y-auto">
@@ -65,6 +66,11 @@ export function SamplingModal({ cards, onSelect }: Props) {
           <div className="text-xs sm:text-sm text-gray-400 mt-1">
             選ばなかった2枚は山札に戻されます
           </div>
+          {remaining > 0 && (
+            <div className="text-xs sm:text-sm text-teal-400 mt-1">
+              あと{remaining}回の検査が残っています
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">

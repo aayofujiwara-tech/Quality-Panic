@@ -32,7 +32,7 @@ export function initGame(difficulty: Difficulty): GameState {
 
     snsFireActive: false,
     forcedDraws: 0,
-    samplingNextRound: false,
+    samplingNextRound: 0,
     samplingCards: [],
     waterInspectionActive: false,
 
@@ -80,18 +80,19 @@ export function prepareRound(state: GameState): GameState {
   newState.forcedDraws = 0;
   newState.waterInspectionActive = false;
 
-  // 抜き取り検査: 前ラウンドでフラグが立っていたら3枚公開
-  if (state.samplingNextRound && newState.drawPile.length >= 3) {
+  // 抜き取り検査: 前ラウンドでカウンターが1以上なら3枚公開
+  if (state.samplingNextRound > 0 && newState.drawPile.length >= 3) {
     const pile = [...newState.drawPile];
     const revealed = pile.splice(0, 3);
     newState.drawPile = pile;
     newState.samplingCards = revealed;
-    newState.samplingNextRound = false;
+    // カウンターをデクリメント（残りは selectSamplingCard で継続判定）
+    newState.samplingNextRound = state.samplingNextRound - 1;
     newState.phase = 'sampling';
     return newState;
   }
 
-  newState.samplingNextRound = false;
+  newState.samplingNextRound = 0;
   newState.samplingCards = [];
   newState.phase = 'shipping';
   return newState;
@@ -114,18 +115,35 @@ export function selectSamplingCard(state: GameState, index: number): GameState {
     samplingCards: [],
   };
 
+  // 次のフェーズを決定するヘルパー
+  const goToNextPhase = (s: GameState): GameState => {
+    // まだ抜き取り検査のカウンターが残っていれば次の検査を開始
+    if (s.samplingNextRound > 0 && s.drawPile.length >= 3) {
+      const pile = [...s.drawPile];
+      const revealed = pile.splice(0, 3);
+      return {
+        ...s,
+        drawPile: pile,
+        samplingCards: revealed,
+        samplingNextRound: s.samplingNextRound - 1,
+        phase: 'sampling',
+      };
+    }
+    return { ...s, phase: 'shipping' };
+  };
+
   // 選択したカードの効果を適用
   switch (selected.type) {
     case 'product':
       // 製品カード → このラウンドの利益として即確保
       newState.currentRoundProfit = newState.currentRoundProfit + selected.value;
       newState.currentRoundProducts = [...newState.currentRoundProducts, selected];
-      newState.phase = 'shipping';
+      newState = goToNextPhase(newState);
       break;
 
     case 'defect':
       // 不具合カード → ゲームから除外（山札に戻さない＝捨て札）
-      newState.phase = 'shipping';
+      newState = goToNextPhase(newState);
       break;
 
     case 'event':
@@ -364,20 +382,34 @@ function applyEventEffect(state: GameState, card: EventCard): GameState {
       break;
 
     case 'sampling_inspection':
-      newState.samplingNextRound = true;
+      newState.samplingNextRound = state.samplingNextRound + 1;
       break;
   }
 
   return newState;
 }
 
-// イベント表示を閉じて出荷フェーズに戻る
+// イベント表示を閉じて次のフェーズへ
 export function dismissEvent(state: GameState): GameState {
-  return {
+  const newState: GameState = {
     ...state,
-    phase: 'shipping',
     pendingEvent: null,
   };
+
+  // 抜き取り検査のカウンターが残っていれば次の検査を開始
+  if (newState.samplingNextRound > 0 && newState.drawPile.length >= 3) {
+    const pile = [...newState.drawPile];
+    const revealed = pile.splice(0, 3);
+    return {
+      ...newState,
+      drawPile: pile,
+      samplingCards: revealed,
+      samplingNextRound: newState.samplingNextRound - 1,
+      phase: 'sampling',
+    };
+  }
+
+  return { ...newState, phase: 'shipping' };
 }
 
 // パニック発生

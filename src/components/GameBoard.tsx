@@ -68,9 +68,9 @@ export function GameBoard({
                 汚染カードが山札に投入されます...
               </div>
             )}
-            {state.samplingNextRound && (
+            {state.samplingNextRound > 0 && (
               <div className="text-sm text-teal-400">
-                🔍 抜き取り検査効果: 3枚から1枚を選べます
+                🔍 抜き取り検査効果: 3枚から1枚を選べます{state.samplingNextRound >= 2 ? `（${state.samplingNextRound}回）` : ''}
               </div>
             )}
             <button
@@ -156,6 +156,7 @@ export function GameBoard({
         <SamplingModal
           cards={state.samplingCards}
           onSelect={onSelectSamplingCard}
+          remaining={state.samplingNextRound}
         />
       )}
 
@@ -180,8 +181,8 @@ function ActiveEffects({ state }: { state: GameState }) {
   if (state.waterInspectionActive) {
     effects.push({ icon: '🛡️', text: '水際検査: 次の不具合自動無効', color: 'text-emerald-400' });
   }
-  if (state.samplingNextRound) {
-    effects.push({ icon: '🔍', text: '抜き取り検査: 次ラウンド発動', color: 'text-teal-400' });
+  if (state.samplingNextRound > 0) {
+    effects.push({ icon: '🔍', text: `抜き取り検査: 次ラウンド${state.samplingNextRound}回発動`, color: 'text-teal-400' });
   }
 
   if (effects.length === 0) return null;

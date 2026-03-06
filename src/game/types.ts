@@ -75,7 +75,7 @@ export type GameState = {
   // イベント効果フラグ
   snsFireActive: boolean;
   forcedDraws: number;
-  samplingNextRound: boolean;
+  samplingNextRound: number;
   samplingCards: Card[];
   waterInspectionActive: boolean;
 
@@ -123,6 +123,7 @@ export type TurnState = {
   forcedDraws: number;
   waterInspectionActive: boolean;
   isPanicked: boolean;
+  samplingNextRound: number;
 };
 
 export type RoundResultMulti = {
@@ -157,6 +158,10 @@ export type MultiplayerGameState = {
   roundResults: {
     [round: number]: RoundResultMulti;
   };
+
+  // 抜き取り検査
+  samplingNextRound: number;       // 次ラウンドで実行する残り回数
+  samplingCards: string[];          // 公開中のカードID
 
   // 汚染情報（演出用）
   lastContamination: {

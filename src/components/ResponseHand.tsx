@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
 import type { ResponseCard } from '../game/types';
 
 type Props = {
@@ -29,6 +29,131 @@ const cardTooltip: Record<string, string> = {
   design_change: '汚染ストックから2枚を永久除外する。このカード自身もゲームから除外される（リサイクルされない）',
 };
 
+const TOOLTIP_WIDTH = 250;
+const SCREEN_PADDING = 8;
+
+function useTooltipPosition(buttonRef: React.RefObject<HTMLButtonElement | null>, visible: boolean) {
+  const [style, setStyle] = useState<React.CSSProperties>({});
+  const [arrowOffset, setArrowOffset] = useState<number>(0);
+
+  useLayoutEffect(() => {
+    if (!visible || !buttonRef.current) return;
+    const btn = buttonRef.current.getBoundingClientRect();
+    const btnCenterX = btn.left + btn.width / 2;
+
+    // ツールチップの理想的な左端（中央揃え）
+    let left = btnCenterX - TOOLTIP_WIDTH / 2;
+
+    // 画面左端からはみ出す場合
+    if (left < SCREEN_PADDING) {
+      left = SCREEN_PADDING;
+    }
+    // 画面右端からはみ出す場合
+    if (left + TOOLTIP_WIDTH > window.innerWidth - SCREEN_PADDING) {
+      left = window.innerWidth - SCREEN_PADDING - TOOLTIP_WIDTH;
+    }
+
+    // 矢印のオフセット: ボタン中央 - ツールチップ左端（ツールチップ内での相対位置）
+    const arrow = btnCenterX - left;
+
+    setStyle({
+      position: 'fixed',
+      bottom: window.innerHeight - btn.top + 8,
+      left,
+      width: TOOLTIP_WIDTH,
+    });
+    setArrowOffset(arrow);
+  }, [visible, buttonRef]);
+
+  return { style, arrowOffset };
+}
+
+function Tooltip({ buttonRef, visible, responseType, name }: {
+  buttonRef: React.RefObject<HTMLButtonElement | null>;
+  visible: boolean;
+  responseType: string;
+  name: string;
+}) {
+  const { style, arrowOffset } = useTooltipPosition(buttonRef, visible);
+
+  if (!visible) return null;
+
+  return (
+    <div style={style} className="z-50 pointer-events-none">
+      <div className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 shadow-xl text-xs">
+        <div className="font-bold text-white mb-1">{cardIcon[responseType]} {name}</div>
+        <div className="text-gray-300 leading-relaxed">{cardTooltip[responseType]}</div>
+      </div>
+      <div
+        className="w-2 h-2 bg-gray-800 border-r border-b border-gray-600 rotate-45 -mt-1"
+        style={{ marginLeft: arrowOffset - 4 }}
+      />
+    </div>
+  );
+}
+
+function CardWithTooltip({ card, index, onUseCard, disabled, isHighlighted, tooltipIndex, setTooltipIndex }: {
+  card: ResponseCard;
+  index: number;
+  onUseCard: (i: number) => void;
+  disabled?: boolean;
+  isHighlighted: boolean;
+  tooltipIndex: number | null;
+  setTooltipIndex: (i: number | null) => void;
+}) {
+  const buttonRef = useRef<HTMLButtonElement | null>(null);
+  const [hovered, setHovered] = useState(false);
+  const showTooltip = tooltipIndex === index || hovered;
+
+  const handleTap = useCallback((e: React.MouseEvent) => {
+    if ('ontouchstart' in window) {
+      if (tooltipIndex === index) {
+        setTooltipIndex(null);
+      } else {
+        e.preventDefault();
+        setTooltipIndex(index);
+      }
+    }
+  }, [tooltipIndex, index, setTooltipIndex]);
+
+  return (
+    <div className="relative">
+      <button
+        ref={buttonRef}
+        onClick={(e) => {
+          handleTap(e);
+          if (!('ontouchstart' in window)) {
+            onUseCard(index);
+          }
+        }}
+        onDoubleClick={() => {
+          if ('ontouchstart' in window) {
+            onUseCard(index);
+          }
+        }}
+        onMouseEnter={() => setHovered(true)}
+        onMouseLeave={() => setHovered(false)}
+        disabled={disabled}
+        className={`px-2 sm:px-3 py-2 min-h-[44px] rounded border text-xs sm:text-sm font-medium transition-all cursor-pointer
+          ${cardColor[card.responseType]}
+          ${isHighlighted ? 'ring-2 ring-yellow-400 scale-105' : ''}
+          ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
+        `}
+      >
+        <span className="mr-0.5 sm:mr-1">{cardIcon[card.responseType]}</span>
+        {card.name}
+      </button>
+
+      <Tooltip
+        buttonRef={buttonRef}
+        visible={showTooltip}
+        responseType={card.responseType}
+        name={card.name}
+      />
+    </div>
+  );
+}
+
 export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Props) {
   const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
@@ -45,18 +170,6 @@ export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Pro
     return () => document.removeEventListener('touchstart', handleTouch);
   }, [tooltipIndex]);
 
-  const handleTap = useCallback((i: number, e: React.MouseEvent | React.TouchEvent) => {
-    // タッチデバイスでツールチップ表示を切り替え
-    if ('ontouchstart' in window) {
-      if (tooltipIndex === i) {
-        setTooltipIndex(null);
-      } else {
-        e.preventDefault();
-        setTooltipIndex(i);
-      }
-    }
-  }, [tooltipIndex]);
-
   if (hand.length === 0) return null;
 
   return (
@@ -65,53 +178,18 @@ export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Pro
       <div className="flex gap-1.5 sm:gap-2 flex-wrap">
         {hand.map((card, i) => {
           const isDefectResponse = card.responseType !== 'design_change';
-          const isHighlighted = highlightUsable && isDefectResponse;
-          const showTooltip = tooltipIndex === i;
+          const isHighlighted = highlightUsable === true && isDefectResponse;
           return (
-            <div key={i} className="relative group">
-              <button
-                onClick={(e) => {
-                  handleTap(i, e);
-                  if (!('ontouchstart' in window)) {
-                    onUseCard(i);
-                  }
-                }}
-                onDoubleClick={() => {
-                  if ('ontouchstart' in window) {
-                    onUseCard(i);
-                  }
-                }}
-                disabled={disabled}
-                className={`px-2 sm:px-3 py-2 min-h-[44px] rounded border text-xs sm:text-sm font-medium transition-all cursor-pointer
-                  ${cardColor[card.responseType]}
-                  ${isHighlighted ? 'ring-2 ring-yellow-400 scale-105' : ''}
-                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
-                `}
-              >
-                <span className="mr-0.5 sm:mr-1">{cardIcon[card.responseType]}</span>
-                {card.name}
-              </button>
-
-              {/* PC: ホバーツールチップ */}
-              <div className="hidden group-hover:block absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 sm:w-56 pointer-events-none z-50">
-                <div className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 shadow-xl text-xs">
-                  <div className="font-bold text-white mb-1">{cardIcon[card.responseType]} {card.name}</div>
-                  <div className="text-gray-300 leading-relaxed">{cardTooltip[card.responseType]}</div>
-                </div>
-                <div className="w-2 h-2 bg-gray-800 border-r border-b border-gray-600 rotate-45 mx-auto -mt-1" />
-              </div>
-
-              {/* スマホ: タップツールチップ */}
-              {showTooltip && (
-                <div className="block sm:hidden absolute bottom-full left-1/2 -translate-x-1/2 mb-2 w-52 z-50">
-                  <div className="bg-gray-800 border border-gray-600 rounded-lg px-3 py-2 shadow-xl text-xs">
-                    <div className="font-bold text-white mb-1">{cardIcon[card.responseType]} {card.name}</div>
-                    <div className="text-gray-300 leading-relaxed">{cardTooltip[card.responseType]}</div>
-                  </div>
-                  <div className="w-2 h-2 bg-gray-800 border-r border-b border-gray-600 rotate-45 mx-auto -mt-1" />
-                </div>
-              )}
-            </div>
+            <CardWithTooltip
+              key={i}
+              card={card}
+              index={i}
+              onUseCard={onUseCard}
+              disabled={disabled}
+              isHighlighted={isHighlighted}
+              tooltipIndex={tooltipIndex}
+              setTooltipIndex={setTooltipIndex}
+            />
           );
         })}
       </div>

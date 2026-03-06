@@ -118,6 +118,7 @@ export function GameBoard({
               return 0;
             })()}
             onNext={onNextRound}
+            drawnCards={state.drawnCardsThisRound}
           />
         )}
       </div>

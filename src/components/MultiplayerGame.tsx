@@ -13,6 +13,7 @@ import { DrawnCards } from './DrawnCards';
 import { ActionButtons } from './ActionButtons';
 import { ResponseHand } from './ResponseHand';
 import { DefectResponse } from './DefectResponse';
+import { PanicCardHistory } from './RoundResult';
 
 type Props = {
   roomCode: string;
@@ -97,6 +98,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   const [, setLastDrawnCard] = useState<Card | null>(null);
   const [turnProfit, setTurnProfit] = useState(0);
   const [turnPanicked, setTurnPanicked] = useState(false);
+  const [lastDrawnCards, setLastDrawnCards] = useState<Card[]>([]);
   const [myResponseHand, setMyResponseHand] = useState<ResponseCard[]>([]);
   const [myScore, setMyScore] = useState(0);
 
@@ -186,6 +188,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     await writeGameState(roomCode, result.gameState);
 
     if (result.panicked) {
+      setLastDrawnCards(resolveCards(result.gameState.turnState?.drawnCards ?? [], cardMaster));
       const panicState = multiHandlePanic(result.gameState, uid);
       await writeGameState(roomCode, panicState);
       setTurnPanicked(true);
@@ -213,6 +216,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     setMyResponseHand(newResponseHand);
     setTurnProfit(profit);
     setTurnPanicked(false);
+    setLastDrawnCards(drawnCardsThisTurn);
 
     await Promise.all([
       writeGameState(roomCode, newState),
@@ -221,7 +225,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     ]);
 
     setLocalPhase('result');
-  }, [gameState, isMyTurn, roomCode, uid, cardMaster, myResponseHand, myScore]);
+  }, [gameState, isMyTurn, roomCode, uid, cardMaster, myResponseHand, myScore, drawnCardsThisTurn]);
 
   const handleUseResponseCard = useCallback(async (cardIndex: number) => {
     if (!gameState || !pendingDefect) return;
@@ -248,6 +252,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     setPendingDefect(null);
 
     if (panicked) {
+      setLastDrawnCards(drawnCardsThisTurn);
       const panicState = multiHandlePanic(newState, uid);
       await writeGameState(roomCode, panicState);
       setTurnPanicked(true);
@@ -258,7 +263,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
       setLocalPhase('shipping');
       setTurnProfit(newState.turnState?.currentProfit ?? 0);
     }
-  }, [gameState, pendingDefect, roomCode, uid]);
+  }, [gameState, pendingDefect, roomCode, uid, drawnCardsThisTurn]);
 
   const handleDismissEvent = useCallback(() => {
     setPendingEvent(null);
@@ -432,6 +437,9 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                 <div className="text-sm sm:text-base text-gray-400">このラウンドの利益は全て失われました...</div>
                 <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
                 <div className="text-xs sm:text-sm text-gray-500 mt-1">対応カードは入手できません</div>
+                {lastDrawnCards.length > 0 && (
+                  <PanicCardHistory cards={lastDrawnCards} />
+                )}
               </>
             ) : (
               <>

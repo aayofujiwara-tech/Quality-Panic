@@ -69,7 +69,7 @@ export function DrawnCards({ cards, currentProfit, currentDefectPoints, panicThr
           </div>
         ))}
         {cards.length === 0 && (
-          <div className="text-gray-500 text-xs sm:text-sm">まだカードをめくっていません</div>
+          <div className="text-gray-500 text-xs sm:text-sm">まだ出荷していません</div>
         )}
       </div>
     </div>

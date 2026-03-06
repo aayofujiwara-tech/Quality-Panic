@@ -424,8 +424,15 @@ export function dismissEvent(state: GameState): GameState {
     pendingEvent: null,
   };
 
-  // 抜き取り検査のカウンターが残っていれば次の検査を開始
-  if (newState.samplingNextRound > 0 && newState.drawPile.length >= 3) {
+  // 抜き取り検査イベントで加算されたカウンターは次ラウンドに持ち越す。
+  // sampling中に非sampling系イベントを引いた場合は残りセッションを継続する。
+  let effectiveCount = newState.samplingNextRound;
+  if (state.pendingEvent?.eventType === 'sampling_inspection') {
+    // このイベントで加算された+1は次ラウンド用なので除外して判定
+    effectiveCount = Math.max(0, effectiveCount - 1);
+  }
+
+  if (effectiveCount > 0 && newState.drawPile.length >= 3) {
     const pile = [...newState.drawPile];
     const revealed = pile.splice(0, 3);
     return {

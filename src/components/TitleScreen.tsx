@@ -52,8 +52,8 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
       </div>
 
       <p className="text-gray-500 text-xs sm:text-sm max-w-md text-center px-2">
-        品質保証テーマのプッシュ・ユア・ラック系カードゲーム。
-        山札からカードをめくり、パニックを起こさずに利益を稼げ！
+        製品を出荷して利益を稼げ！ただし出荷するほど市場の不具合は増えていく。
+        利益か出荷停止か——品質保証部としての判断が試される。
       </p>
 
       <div className="flex flex-col gap-3 w-full max-w-[280px]">
@@ -124,7 +124,7 @@ function RulesModal({ onClose }: { onClose: () => void }) {
           <section>
             <h3 className="text-base sm:text-lg font-bold text-white mb-2">ゲームの目的</h3>
             <p className="text-sm sm:text-base text-gray-300 leading-relaxed">
-              製造業の品質管理部門として、製品を出荷して利益を稼げ！ただし出荷するほど不具合が増えていく…。
+              製品を出荷して利益を稼げ！ただし出荷するほど市場の不具合は増えていく。利益か出荷停止か——品質保証部としての判断が試される。
             </p>
           </section>
 
@@ -132,7 +132,7 @@ function RulesModal({ onClose }: { onClose: () => void }) {
           <section>
             <h3 className="text-base sm:text-lg font-bold text-white mb-2">基本ルール</h3>
             <ul className="space-y-1.5 text-sm sm:text-base text-gray-300">
-              <li>・山札からカードを1枚ずつめくる</li>
+              <li>・山札から製品を1枚ずつ出荷する</li>
               <li>・<span className="text-blue-400">製品カード</span>（青）を引くと利益になる：
                 <ul className="ml-4 mt-1 space-y-0.5 text-blue-300">
                   <li>量産品（20枚）：+1点</li>
@@ -148,7 +148,7 @@ function RulesModal({ onClose }: { onClose: () => void }) {
                 </ul>
               </li>
               <li>・不具合ポイントが<span className="text-red-400 font-bold">3以上</span>になると<span className="text-red-400 font-bold">パニック発生！</span>そのラウンドの利益は全て失い、さらに山札が<span className="text-red-300">汚染+3枚</span></li>
-              <li>・いつでも「止める」を選んで利益を確定できる</li>
+              <li>・いつでも「出荷停止」を選んで利益を確定できる</li>
             </ul>
           </section>
 
@@ -156,7 +156,7 @@ function RulesModal({ onClose }: { onClose: () => void }) {
           <section>
             <h3 className="text-base sm:text-lg font-bold text-white mb-2">対応カード<span className="text-gray-400 text-sm font-normal ml-2">（全10枚）</span></h3>
             <p className="text-sm sm:text-base text-gray-400 mb-1">
-              ラウンドで利益を抑えて止めると対応カードがもらえる（0〜2点で2枚、3〜5点で1枚）
+              ラウンドで利益を抑えて出荷停止すると対応カードがもらえる（0〜2点で2枚、3〜5点で1枚）
             </p>
             <p className="text-sm sm:text-base text-gray-400 mb-2">
               ゲーム開始時に1枚配られる。手札上限3枚
@@ -176,11 +176,11 @@ function RulesModal({ onClose }: { onClose: () => void }) {
           <section>
             <h3 className="text-base sm:text-lg font-bold text-white mb-2">イベントカード<span className="text-gray-400 text-sm font-normal ml-2">（全10枚）</span></h3>
             <p className="text-sm sm:text-base text-gray-400 mb-2">
-              山札に混ざっているイベントカードはめくった瞬間に発動する：
+              山札に混ざっているイベントカードは出荷時に発動する：
             </p>
             <ul className="space-y-1.5 text-sm sm:text-base text-gray-300">
               <li><span className="text-orange-400">🔥 SNS炎上</span><span className="text-gray-500">（2枚）</span>：次の不具合ポイントが2倍</li>
-              <li><span className="text-yellow-400">⏰ 納期プレッシャー</span><span className="text-gray-500">（2枚）</span>：あと2枚は止められない</li>
+              <li><span className="text-yellow-400">⏰ 納期プレッシャー</span><span className="text-gray-500">（2枚）</span>：あと2枚は出荷停止できない</li>
               <li><span className="text-red-400">👴 ベテラン退職</span><span className="text-gray-500">（1枚）</span>：パニック閾値が一時的に2に低下</li>
               <li><span className="text-green-400">💡 改善提案</span><span className="text-gray-500">（2枚）</span>：直前の不具合を取り消し</li>
               <li><span className="text-blue-400">📋 ISO監査</span><span className="text-gray-500">（1枚）</span>：不具合ポイント0ならボーナス3点</li>
@@ -203,7 +203,7 @@ function RulesModal({ onClose }: { onClose: () => void }) {
             <h3 className="text-base sm:text-lg font-bold text-white mb-2">ソロ / 2人対戦</h3>
             <ul className="space-y-1.5 text-sm sm:text-base text-gray-300">
               <li>・<span className="text-amber-400">ソロ</span>：8ラウンド制。目標スコアを目指す（普通：35点）</li>
-              <li>・<span className="text-blue-400">2人対戦</span>：7ラウンド制。同じ山札を交互にめくり、スコアが高い方の勝ち。相手がパニックすると山が汚れて自分にも影響する</li>
+              <li>・<span className="text-blue-400">2人対戦</span>：7ラウンド制。同じ山札を交互に出荷し、スコアが高い方の勝ち。相手がパニックすると山が汚れて自分にも影響する</li>
             </ul>
           </section>
 

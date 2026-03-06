@@ -8,6 +8,7 @@ import {
 import { writeGameState, writePlayerResponseHand, writePlayerScore } from '../firebase/gameSync';
 import { listenRoom } from '../firebase/roomManager';
 import { MAX_CONTAMINATION_PER_ROUND } from '../game/constants';
+import { saveHighScore } from '../game/highscore';
 import { DrawPile } from './DrawPile';
 import { DrawnCards } from './DrawnCards';
 import { ActionButtons } from './ActionButtons';
@@ -152,6 +153,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
     if (gameState.phase === 'game_over') {
       setLocalPhase('game_over');
+      // ローカルハイスコア更新（対戦でも記録する）
+      saveHighScore(myScore);
       return;
     }
 

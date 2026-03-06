@@ -1,6 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { DIFFICULTIES } from '../game/constants';
 import type { Difficulty } from '../game/types';
+import { getHighScore } from '../game/highscore';
+import { fetchTopRankings, type RankedEntry } from '../firebase/ranking';
 
 export type GameMode = 'solo' | 'create_room' | 'join_room';
 
@@ -12,6 +14,9 @@ type Props = {
 export function TitleScreen({ onStart, onMultiplayer }: Props) {
   const [screen, setScreen] = useState<'top' | 'solo_difficulty'>('top');
   const [showRules, setShowRules] = useState(false);
+  const [showRanking, setShowRanking] = useState(false);
+
+  const highScore = getHighScore();
 
   if (screen === 'solo_difficulty') {
     return (
@@ -51,6 +56,12 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
         <p className="text-gray-400 text-base sm:text-lg">Quality Panic</p>
       </div>
 
+      {highScore && (
+        <div className="text-sm text-amber-300">
+          自己ベスト: {highScore.score}点
+        </div>
+      )}
+
       <p className="text-gray-500 text-xs sm:text-sm max-w-md text-center px-2">
         製品を出荷して利益を稼げ！ただし出荷するほど市場の不具合は増えていく。
         利益か出荷停止か——品質保証部としての判断が試される。
@@ -83,15 +94,93 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
           <span className="block text-gray-400 text-xs mt-1">ルームコードを入力して参加</span>
         </button>
 
-        <button
-          onClick={() => setShowRules(true)}
-          className="mt-2 px-6 py-3 min-h-[44px] bg-gray-800/50 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 rounded-lg text-gray-300 hover:text-white font-medium transition-all cursor-pointer"
-        >
-          遊び方
-        </button>
+        <div className="flex gap-3 mt-2">
+          <button
+            onClick={() => setShowRanking(true)}
+            className="flex-1 px-4 py-3 min-h-[44px] bg-gray-800/50 hover:bg-gray-700 border border-gray-700 hover:border-amber-500 rounded-lg text-gray-300 hover:text-white font-medium transition-all cursor-pointer"
+          >
+            ランキング
+          </button>
+          <button
+            onClick={() => setShowRules(true)}
+            className="flex-1 px-4 py-3 min-h-[44px] bg-gray-800/50 hover:bg-gray-700 border border-gray-700 hover:border-gray-500 rounded-lg text-gray-300 hover:text-white font-medium transition-all cursor-pointer"
+          >
+            遊び方
+          </button>
+        </div>
       </div>
 
       {showRules && <RulesModal onClose={() => setShowRules(false)} />}
+      {showRanking && <RankingModal onClose={() => setShowRanking(false)} />}
+    </div>
+  );
+}
+
+// ===== ランキングモーダル =====
+
+function RankingModal({ onClose }: { onClose: () => void }) {
+  const [rankings, setRankings] = useState<RankedEntry[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    fetchTopRankings()
+      .then(setRankings)
+      .catch(() => setError('ランキングの取得に失敗しました'))
+      .finally(() => setLoading(false));
+  }, []);
+
+  return (
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-3 sm:p-6">
+      <div className="bg-gray-900 border border-gray-700 rounded-xl w-full max-w-md max-h-[90vh] flex flex-col shadow-2xl">
+        <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4 border-b border-gray-700 shrink-0">
+          <h2 className="text-lg sm:text-xl font-bold text-amber-400">ランキング TOP20</h2>
+          <button
+            onClick={onClose}
+            className="px-4 py-2 min-h-[44px] bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold transition-all cursor-pointer"
+          >
+            閉じる
+          </button>
+        </div>
+
+        <div className="flex-1 overflow-y-auto px-4 sm:px-6 py-4">
+          {loading && <p className="text-gray-400 text-center">読み込み中...</p>}
+          {error && <p className="text-red-400 text-center">{error}</p>}
+          {!loading && !error && rankings.length === 0 && (
+            <p className="text-gray-500 text-center">まだ記録がありません</p>
+          )}
+          {!loading && !error && rankings.length > 0 && (
+            <div className="space-y-1">
+              {rankings.map((entry) => (
+                <div
+                  key={entry.id}
+                  className="flex items-center gap-2 sm:gap-3 py-2 border-b border-gray-800 last:border-0"
+                >
+                  <span className={`w-7 text-right font-bold shrink-0 ${
+                    entry.rank === 1 ? 'text-yellow-400' :
+                    entry.rank === 2 ? 'text-gray-300' :
+                    entry.rank === 3 ? 'text-amber-600' : 'text-gray-500'
+                  }`}>
+                    {entry.rank}
+                  </span>
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <span className="text-white truncate">{entry.playerName}</span>
+                      <span className="text-[10px] px-1.5 py-0.5 bg-gray-700 rounded text-gray-400 shrink-0">
+                        {entry.difficulty}
+                      </span>
+                    </div>
+                    <div className="text-[10px] text-gray-600">
+                      {new Date(entry.date).toLocaleDateString('ja-JP')}
+                    </div>
+                  </div>
+                  <span className="font-bold text-amber-400 shrink-0">{entry.score}pt</span>
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

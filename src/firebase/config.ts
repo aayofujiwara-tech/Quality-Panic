@@ -18,3 +18,24 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getDatabase(app);
+
+/*
+ * Firebase Realtime Database ルール:
+ * Firebaseコンソールで以下のルールを設定すること。
+ *
+ * {
+ *   "rules": {
+ *     "rooms": {
+ *       "$roomCode": {
+ *         ".read": "auth != null",
+ *         ".write": "auth != null"
+ *       }
+ *     },
+ *     "rankings": {
+ *       ".read": true,
+ *       ".write": "auth != null",
+ *       ".indexOn": ["score"]
+ *     }
+ *   }
+ * }
+ */

@@ -18,7 +18,7 @@ export function ActionButtons({ onDraw, onStop, canDraw, canStop, cardsDrawn }: 
             : 'bg-gray-700 text-gray-500 cursor-not-allowed'
         }`}
       >
-        もう1枚めくる
+        出荷する
       </button>
       <button
         onClick={onStop}
@@ -29,7 +29,7 @@ export function ActionButtons({ onDraw, onStop, canDraw, canStop, cardsDrawn }: 
             : 'bg-gray-700 text-gray-500 cursor-not-allowed'
         }`}
       >
-        ここで止める{cardsDrawn > 0 ? '' : ''}
+        出荷停止{cardsDrawn > 0 ? '' : ''}
       </button>
     </div>
   );

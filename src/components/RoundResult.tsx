@@ -38,7 +38,7 @@ export function RoundResultView({ result, totalScore, targetScore, responseCards
       </div>
 
       <div className="text-sm text-gray-500">
-        {result.cardsDrawn}枚めくりました
+        {result.cardsDrawn}枚出荷しました
       </div>
 
       <button

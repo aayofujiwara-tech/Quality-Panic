@@ -67,9 +67,9 @@ const eventColors: Record<string, string> = {
 function getMultiEventDescription(event: EventCard, turnState: MultiplayerGameState['turnState']): string {
   switch (event.eventType) {
     case 'sns_fire':
-      return '次にめくる不具合カードのPtが2倍になります！';
+      return '次に出荷する不具合カードのPtが2倍になります！';
     case 'deadline_pressure':
-      return 'あと最低2枚めくらないと止められません！';
+      return 'あと最低2枚は出荷しないといけません！';
     case 'veteran_retire': {
       const defPt = turnState?.currentDefectPoints ?? 0;
       return `パニック閾値が3→2に低下！（このラウンドのみ）${

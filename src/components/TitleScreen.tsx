@@ -133,40 +133,58 @@ function RulesModal({ onClose }: { onClose: () => void }) {
             <h3 className="text-base sm:text-lg font-bold text-white mb-2">基本ルール</h3>
             <ul className="space-y-1.5 text-sm sm:text-base text-gray-300">
               <li>・山札からカードを1枚ずつめくる</li>
-              <li>・<span className="text-blue-400">製品カード</span>を引くと利益になる。量産品<span className="text-blue-300">+1点</span>、高付加価値品<span className="text-blue-300">+2点</span>、大型案件<span className="text-blue-300">+3点</span></li>
-              <li>・<span className="text-yellow-400">不具合</span><span className="text-red-400">カード</span>（<span className="text-yellow-400">黄</span>/<span className="text-red-400">赤</span>/<span className="text-gray-100">黒</span>）を引くと不具合ポイントが溜まる</li>
-              <li>・不具合ポイントが<span className="text-red-400 font-bold">3以上</span>になると<span className="text-red-400 font-bold">パニック発生！</span>そのラウンドの利益は全て失い、さらに山札が汚染される</li>
+              <li>・<span className="text-blue-400">製品カード</span>（青）を引くと利益になる：
+                <ul className="ml-4 mt-1 space-y-0.5 text-blue-300">
+                  <li>量産品（20枚）：+1点</li>
+                  <li>高付加価値品（10枚）：+2点</li>
+                  <li>大型案件（6枚）：+3点</li>
+                </ul>
+              </li>
+              <li>・<span className="text-yellow-400">不具合</span><span className="text-red-400">カード</span>（<span className="text-yellow-400">黄</span>/<span className="text-red-400">赤</span>/<span className="text-gray-100">黒</span>）を引くと不具合ポイントが溜まる：
+                <ul className="ml-4 mt-1 space-y-0.5">
+                  <li><span className="text-yellow-400">軽微な不具合・黄</span>（初期6枚）：1ポイント</li>
+                  <li><span className="text-red-400">重大な不具合・赤</span>（初期3枚）：2ポイント</li>
+                  <li><span className="text-gray-100">リコール級・黒</span>（汚染ストックのみ、4枚）：3ポイント（<span className="text-red-400 font-bold">即パニック</span>）</li>
+                </ul>
+              </li>
+              <li>・不具合ポイントが<span className="text-red-400 font-bold">3以上</span>になると<span className="text-red-400 font-bold">パニック発生！</span>そのラウンドの利益は全て失い、さらに山札が<span className="text-red-300">汚染+3枚</span></li>
               <li>・いつでも「止める」を選んで利益を確定できる</li>
             </ul>
           </section>
 
           {/* 対応カード */}
           <section>
-            <h3 className="text-base sm:text-lg font-bold text-white mb-2">対応カード</h3>
-            <p className="text-sm sm:text-base text-gray-400 mb-2">
+            <h3 className="text-base sm:text-lg font-bold text-white mb-2">対応カード<span className="text-gray-400 text-sm font-normal ml-2">（全10枚）</span></h3>
+            <p className="text-sm sm:text-base text-gray-400 mb-1">
               ラウンドで利益を抑えて止めると対応カードがもらえる（0〜2点で2枚、3〜5点で1枚）
             </p>
+            <p className="text-sm sm:text-base text-gray-400 mb-2">
+              ゲーム開始時に1枚配られる。手札上限3枚
+            </p>
             <ul className="space-y-1.5 text-sm sm:text-base text-gray-300">
-              <li><span className="text-green-300">🩹 応急処置</span>：不具合1枚を無効化</li>
-              <li><span className="text-green-300">🔍 原因調査</span>：無効化＋山札から不具合1枚除外</li>
-              <li><span className="text-emerald-300">🛡️ 水際検査</span>：この不具合と次の不具合も無効化</li>
-              <li><span className="text-cyan-300">⚙️ 設計変更</span>：汚染ストックから2枚を永久除外（1枚限り、使ったら消える）</li>
+              <li><span className="text-green-300">🩹 応急処置</span><span className="text-gray-500">（4枚）</span>：不具合1枚を無効化</li>
+              <li><span className="text-green-300">🔍 原因調査</span><span className="text-gray-500">（3枚）</span>：無効化＋山札から不具合1枚除外</li>
+              <li><span className="text-emerald-300">🛡️ 水際検査</span><span className="text-gray-500">（2枚）</span>：この不具合と次の不具合も無効化</li>
+              <li><span className="text-cyan-300">⚙️ 設計変更</span><span className="text-gray-500">（1枚）</span>：汚染ストックから2枚を永久除外。使ったらゲームから消える</li>
             </ul>
+            <p className="text-xs text-gray-500 mt-2">
+              ※ストックが尽きたら捨て山をリサイクル（設計変更以外）
+            </p>
           </section>
 
           {/* イベントカード */}
           <section>
-            <h3 className="text-base sm:text-lg font-bold text-white mb-2">イベントカード</h3>
+            <h3 className="text-base sm:text-lg font-bold text-white mb-2">イベントカード<span className="text-gray-400 text-sm font-normal ml-2">（全10枚）</span></h3>
             <p className="text-sm sm:text-base text-gray-400 mb-2">
               山札に混ざっているイベントカードはめくった瞬間に発動する：
             </p>
             <ul className="space-y-1.5 text-sm sm:text-base text-gray-300">
-              <li><span className="text-orange-400">🔥 SNS炎上</span>：次の不具合ポイントが2倍</li>
-              <li><span className="text-yellow-400">⏰ 納期プレッシャー</span>：あと2枚は止められない</li>
-              <li><span className="text-red-400">👴 ベテラン退職</span>：パニック閾値が一時的に2に低下</li>
-              <li><span className="text-green-400">💡 改善提案</span>：直前の不具合を取り消し</li>
-              <li><span className="text-blue-400">📋 ISO監査</span>：不具合ポイント0ならボーナス3点</li>
-              <li><span className="text-teal-400">🔍 抜き取り検査</span>：次ラウンドで山札の上3枚から1枚選べる</li>
+              <li><span className="text-orange-400">🔥 SNS炎上</span><span className="text-gray-500">（2枚）</span>：次の不具合ポイントが2倍</li>
+              <li><span className="text-yellow-400">⏰ 納期プレッシャー</span><span className="text-gray-500">（2枚）</span>：あと2枚は止められない</li>
+              <li><span className="text-red-400">👴 ベテラン退職</span><span className="text-gray-500">（1枚）</span>：パニック閾値が一時的に2に低下</li>
+              <li><span className="text-green-400">💡 改善提案</span><span className="text-gray-500">（2枚）</span>：直前の不具合を取り消し</li>
+              <li><span className="text-blue-400">📋 ISO監査</span><span className="text-gray-500">（1枚）</span>：不具合ポイント0ならボーナス3点</li>
+              <li><span className="text-teal-400">🔍 抜き取り検査</span><span className="text-gray-500">（2枚）</span>：次ラウンドで山札の上3枚から1枚選べる</li>
             </ul>
           </section>
 

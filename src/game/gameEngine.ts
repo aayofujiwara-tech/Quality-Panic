@@ -1,4 +1,4 @@
-import type { GameState, Card, ProductCard, DefectCard, EventCard, ResponseCard, Difficulty, RoundResult } from './types';
+import type { GameState, Card, ProductCard, DefectCard, EventCard, ResponseCard, Difficulty, RoundResult, DefectPointChange } from './types';
 import { MAX_ROUNDS, PANIC_THRESHOLD, MAX_CONTAMINATION_PER_ROUND, PANIC_CONTAMINATION_PENALTY, RESPONSE_HAND_LIMIT } from './constants';
 import { createInitialDrawPile, createContaminationStock, createResponseStock, shuffle } from './cards';
 
@@ -39,6 +39,7 @@ export function initGame(difficulty: Difficulty): GameState {
     roundHistory: [],
     lastDrawnCard: null,
     drawnCardsThisRound: [],
+    defectPointsLog: [],
 
     gameResult: 'playing',
   };
@@ -76,6 +77,7 @@ export function prepareRound(state: GameState): GameState {
   newState.pendingEvent = null;
   newState.lastDrawnCard = null;
   newState.drawnCardsThisRound = [];
+  newState.defectPointsLog = [];
   newState.snsFireActive = false;
   newState.forcedDraws = 0;
   newState.waterInspectionActive = false;
@@ -201,9 +203,15 @@ function handleProductCard(state: GameState, card: ProductCard): GameState {
 function handleDefectCard(state: GameState, card: DefectCard): GameState {
   // 水際検査が有効なら自動無効化
   if (state.waterInspectionActive) {
+    const logEntry: DefectPointChange = {
+      points: state.currentDefectPoints,
+      reason: `🛡️水際検査 → ${card.name}無効`,
+      changeType: 'nullified',
+    };
     return {
       ...state,
       waterInspectionActive: false,
+      defectPointsLog: [...state.defectPointsLog, logEntry],
     };
   }
 
@@ -238,11 +246,18 @@ function applyDefectPoints(state: GameState, card: DefectCard): GameState {
 
   const newDefectPoints = state.currentDefectPoints + points;
 
+  const logEntry: DefectPointChange = {
+    points: newDefectPoints,
+    reason: card.name + (state.snsFireActive ? '(炎上2倍)' : ''),
+    changeType: 'increase',
+  };
+
   const newState: GameState = {
     ...state,
     currentDefectPoints: newDefectPoints,
     pendingDefect: null,
     snsFireActive: false, // 使い切り
+    defectPointsLog: [...state.defectPointsLog, logEntry],
   };
 
   if (newDefectPoints >= state.panicThreshold) {
@@ -261,11 +276,19 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
   if (!card) return state;
 
   const newHand = state.responseHand.filter((_, i) => i !== cardIndex);
+
+  const logEntry: DefectPointChange = {
+    points: state.currentDefectPoints,
+    reason: `${card.name} → ${defect.name}無効`,
+    changeType: 'nullified',
+  };
+
   let newState: GameState = {
     ...state,
     responseHand: newHand,
     pendingDefect: null,
     phase: 'shipping',
+    defectPointsLog: [...state.defectPointsLog, logEntry],
   };
 
   switch (card.responseType) {
@@ -371,6 +394,11 @@ function applyEventEffect(state: GameState, card: EventCard): GameState {
       if (drawnDefects.length > 0 && state.currentDefectPoints > 0) {
         const lastDefect = drawnDefects[drawnDefects.length - 1];
         newState.currentDefectPoints = Math.max(0, state.currentDefectPoints - lastDefect.defectPoints);
+        newState.defectPointsLog = [...state.defectPointsLog, {
+          points: newState.currentDefectPoints,
+          reason: card.name,
+          changeType: 'decrease' as const,
+        }];
       }
       break;
     }
@@ -526,6 +554,7 @@ export function nextRound(state: GameState): GameState {
     pendingEvent: null,
     lastDrawnCard: null,
     drawnCardsThisRound: [],
+    defectPointsLog: [],
     snsFireActive: false,
     forcedDraws: 0,
     waterInspectionActive: false,

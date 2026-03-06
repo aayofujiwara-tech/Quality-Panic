@@ -119,6 +119,7 @@ export function GameBoard({
             })()}
             onNext={onNextRound}
             drawnCards={state.drawnCardsThisRound}
+            defectPointsLog={state.defectPointsLog}
           />
         )}
       </div>

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Room, Card, DefectCard, EventCard, ResponseCard, MultiplayerGameState } from '../game/types';
+import type { Room, Card, DefectCard, EventCard, ResponseCard, MultiplayerGameState, DefectPointChange } from '../game/types';
 import {
   startTurn, multiDrawCard, multiStopDrawing, multiHandlePanic,
   multiCanStop, multiUseResponseCard, multiSkipDefectResponse,
@@ -101,6 +101,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   const [turnProfit, setTurnProfit] = useState(0);
   const [turnPanicked, setTurnPanicked] = useState(false);
   const [lastDrawnCards, setLastDrawnCards] = useState<Card[]>([]);
+  const [lastDefectPointsLog, setLastDefectPointsLog] = useState<DefectPointChange[]>([]);
   const [myResponseHand, setMyResponseHand] = useState<ResponseCard[]>([]);
   const [myScore, setMyScore] = useState(0);
 
@@ -202,6 +203,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
     if (result.panicked) {
       setLastDrawnCards(resolveCards(result.gameState.turnState?.drawnCards ?? [], cardMaster));
+      setLastDefectPointsLog(result.gameState.turnState?.defectPointsLog ?? []);
       const panicState = multiHandlePanic(result.gameState, uid);
       await writeGameState(roomCode, panicState);
       setTurnPanicked(true);
@@ -230,6 +232,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     setTurnProfit(profit);
     setTurnPanicked(false);
     setLastDrawnCards(drawnCardsThisTurn);
+    setLastDefectPointsLog(gameState?.turnState?.defectPointsLog ?? []);
 
     await Promise.all([
       writeGameState(roomCode, newState),
@@ -266,6 +269,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
     if (panicked) {
       setLastDrawnCards(drawnCardsThisTurn);
+      setLastDefectPointsLog(newState.turnState?.defectPointsLog ?? []);
       const panicState = multiHandlePanic(newState, uid);
       await writeGameState(roomCode, panicState);
       setTurnPanicked(true);
@@ -468,7 +472,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                 <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
                 <div className="text-xs sm:text-sm text-gray-500 mt-1">対応カードは入手できません</div>
                 {lastDrawnCards.length > 0 && (
-                  <PanicCardHistory cards={lastDrawnCards} />
+                  <PanicCardHistory cards={lastDrawnCards} defectPointsLog={lastDefectPointsLog} />
                 )}
               </>
             ) : (

@@ -1,6 +1,6 @@
 import type {
   Card, DefectCard, EventCard, ProductCard, ResponseCard,
-  MultiplayerGameState, TurnState,
+  MultiplayerGameState, TurnState, DefectPointChange,
 } from './types';
 import {
   MAX_ROUNDS_MULTI, PANIC_THRESHOLD, MAX_CONTAMINATION_PER_ROUND,
@@ -115,6 +115,7 @@ export function startTurn(gameState: MultiplayerGameState): MultiplayerGameState
       waterInspectionActive: false,
       isPanicked: false,
       samplingNextRound: 0,
+      defectPointsLog: [],
     },
   };
 
@@ -238,6 +239,11 @@ export function multiDrawCard(
       const dc = card as DefectCard;
       if (turn.waterInspectionActive) {
         turn.waterInspectionActive = false;
+        turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+          points: turn.currentDefectPoints,
+          reason: `🛡️水際検査 → ${dc.name}無効`,
+          changeType: 'nullified' as const,
+        }];
       } else {
         // 対応カードがあるか確認
         const usable = responseHand.filter(
@@ -278,12 +284,19 @@ function applyDefectToTurn(turn: TurnState, card: DefectCard): { panicked: boole
     points = turn.panicThreshold;
   }
 
+  const wasSnsFire = turn.snsFireActive;
   if (turn.snsFireActive) {
     points *= 2;
     turn.snsFireActive = false;
   }
 
   turn.currentDefectPoints += points;
+
+  turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+    points: turn.currentDefectPoints,
+    reason: card.name + (wasSnsFire ? '(炎上2倍)' : ''),
+    changeType: 'increase' as const,
+  }];
 
   if (turn.currentDefectPoints >= turn.panicThreshold) {
     turn.isPanicked = true;
@@ -307,6 +320,11 @@ function applyEventToTurn(turn: TurnState, card: EventCard, _cardMaster: Record<
       if (turn.currentDefectPoints > 0) {
         // 簡易実装: 不具合1pt分を回復
         turn.currentDefectPoints = Math.max(0, turn.currentDefectPoints - 1);
+        turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+          points: turn.currentDefectPoints,
+          reason: card.name,
+          changeType: 'decrease' as const,
+        }];
       }
       break;
     case 'iso_audit':
@@ -339,6 +357,14 @@ export function multiUseResponseCard(
 
   const newHand = responseHand.filter((_, i) => i !== cardIndex);
   const turn = { ...gameState.turnState };
+
+  // 不具合無効化ログ
+  turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+    points: turn.currentDefectPoints,
+    reason: `${card.name} → 不具合無効`,
+    changeType: 'nullified' as const,
+  }];
+
   let newState = { ...gameState };
 
   switch (card.responseType) {

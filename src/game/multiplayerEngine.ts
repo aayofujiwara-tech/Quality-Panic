@@ -92,6 +92,8 @@ export function initMultiplayerGame(playerOrder: string[]): MultiplayerInit {
     turnState: null,
 
     roundResults: {},
+    samplingNextRound: 0,
+    samplingCards: [],
     lastContamination: null,
   };
 
@@ -101,9 +103,8 @@ export function initMultiplayerGame(playerOrder: string[]): MultiplayerInit {
 // ===== ターン開始 =====
 
 export function startTurn(gameState: MultiplayerGameState): MultiplayerGameState {
-  return {
+  const newState: MultiplayerGameState = {
     ...gameState,
-    phase: 'shipping',
     turnState: {
       drawnCards: [],
       currentProfit: 0,
@@ -113,8 +114,85 @@ export function startTurn(gameState: MultiplayerGameState): MultiplayerGameState
       forcedDraws: 0,
       waterInspectionActive: false,
       isPanicked: false,
+      samplingNextRound: 0,
+      defectPointsLog: [],
     },
   };
+
+  // 抜き取り検査が残っていれば先に実行
+  if (gameState.samplingNextRound > 0 && (gameState.drawPile ?? []).length >= 3) {
+    const pile = [...(gameState.drawPile ?? [])];
+    const revealed = pile.splice(0, 3);
+    return {
+      ...newState,
+      phase: 'shipping',  // ローカルフェーズ側で sampling に切り替える
+      drawPile: pile,
+      samplingCards: revealed,
+      samplingNextRound: gameState.samplingNextRound - 1,
+    };
+  }
+
+  return { ...newState, phase: 'shipping', samplingCards: [] };
+}
+
+// ===== 抜き取り検査: カード選択 =====
+
+export function multiSelectSamplingCard(
+  gameState: MultiplayerGameState,
+  index: number,
+  cardMaster: Record<string, Card>,
+): MultiplayerGameState {
+  const cardIds = gameState.samplingCards ?? [];
+  if (index < 0 || index >= cardIds.length) return gameState;
+
+  const selectedId = cardIds[index];
+  const selected = cardMaster[selectedId];
+  const remaining = cardIds.filter((_, i) => i !== index);
+
+  // 残り2枚を山札に戻してシャッフル
+  const newDrawPile = shuffle([...(gameState.drawPile ?? []), ...remaining]);
+
+  let newState: MultiplayerGameState = {
+    ...gameState,
+    drawPile: newDrawPile,
+    samplingCards: [],
+  };
+
+  const turn = newState.turnState ? { ...newState.turnState } : null;
+
+  // 選択したカードの効果を適用
+  if (selected && turn) {
+    switch (selected.type) {
+      case 'product': {
+        const pc = selected as ProductCard;
+        turn.currentProfit += pc.value;
+        break;
+      }
+      case 'defect':
+        // ゲームから除外（何もしない）
+        break;
+      case 'event': {
+        const ec = selected as EventCard;
+        applyEventToTurn(turn, ec, cardMaster);
+        break;
+      }
+    }
+    newState.turnState = turn;
+  }
+
+  // まだ抜き取り検査のカウンターが残っていれば次の検査を開始
+  if (newState.samplingNextRound > 0 && newState.drawPile.length >= 3) {
+    const pile = [...newState.drawPile];
+    const revealed = pile.splice(0, 3);
+    return {
+      ...newState,
+      drawPile: pile,
+      samplingCards: revealed,
+      samplingNextRound: newState.samplingNextRound - 1,
+    };
+  }
+
+  return newState;
 }
 
 // ===== カードを引く =====
@@ -161,6 +239,11 @@ export function multiDrawCard(
       const dc = card as DefectCard;
       if (turn.waterInspectionActive) {
         turn.waterInspectionActive = false;
+        turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+          points: turn.currentDefectPoints,
+          reason: `🛡️水際検査 → ${dc.name}無効`,
+          changeType: 'nullified' as const,
+        }];
       } else {
         // 対応カードがあるか確認
         const usable = responseHand.filter(
@@ -201,12 +284,19 @@ function applyDefectToTurn(turn: TurnState, card: DefectCard): { panicked: boole
     points = turn.panicThreshold;
   }
 
+  const wasSnsFire = turn.snsFireActive;
   if (turn.snsFireActive) {
     points *= 2;
     turn.snsFireActive = false;
   }
 
   turn.currentDefectPoints += points;
+
+  turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+    points: turn.currentDefectPoints,
+    reason: card.name + (wasSnsFire ? '(炎上2倍)' : ''),
+    changeType: 'increase' as const,
+  }];
 
   if (turn.currentDefectPoints >= turn.panicThreshold) {
     turn.isPanicked = true;
@@ -230,6 +320,11 @@ function applyEventToTurn(turn: TurnState, card: EventCard, _cardMaster: Record<
       if (turn.currentDefectPoints > 0) {
         // 簡易実装: 不具合1pt分を回復
         turn.currentDefectPoints = Math.max(0, turn.currentDefectPoints - 1);
+        turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+          points: turn.currentDefectPoints,
+          reason: card.name,
+          changeType: 'decrease' as const,
+        }];
       }
       break;
     case 'iso_audit':
@@ -238,7 +333,7 @@ function applyEventToTurn(turn: TurnState, card: EventCard, _cardMaster: Record<
       }
       break;
     case 'sampling_inspection':
-      // 対戦モードでは抜き取り検査は簡易化（ボーナスなし）
+      turn.samplingNextRound += 1;
       break;
   }
 }
@@ -262,6 +357,14 @@ export function multiUseResponseCard(
 
   const newHand = responseHand.filter((_, i) => i !== cardIndex);
   const turn = { ...gameState.turnState };
+
+  // 不具合無効化ログ
+  turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
+    points: turn.currentDefectPoints,
+    reason: `${card.name} → 不具合無効`,
+    changeType: 'nullified' as const,
+  }];
+
   let newState = { ...gameState };
 
   switch (card.responseType) {
@@ -368,6 +471,7 @@ export function multiStopDrawing(
     responseStock: newRespStock,
     responseDiscard: newRespDiscard,
     roundResults,
+    samplingNextRound: gameState.samplingNextRound + (turn.samplingNextRound ?? 0),
   };
 
   return { gameState: newState, newResponseHand: newHand, profit };
@@ -411,6 +515,7 @@ export function multiHandlePanic(
     contaminationStock: contStock,
     turnState: null,
     roundResults,
+    samplingNextRound: gameState.samplingNextRound + (turn.samplingNextRound ?? 0),
   };
 }
 

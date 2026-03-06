@@ -28,6 +28,13 @@ export type EventCard = {
 
 export type Card = ProductCard | DefectCard | EventCard;
 
+// 不具合Pt変動ログ
+export type DefectPointChange = {
+  points: number;        // 変動後の累計不具合Pt
+  reason: string;        // 変動理由（カード名など）
+  changeType: 'increase' | 'decrease' | 'nullified';
+};
+
 // 対応カード
 export type ResponseType = 'first_aid' | 'root_cause' | 'inspection' | 'design_change';
 export type ResponseCard = {
@@ -75,7 +82,7 @@ export type GameState = {
   // イベント効果フラグ
   snsFireActive: boolean;
   forcedDraws: number;
-  samplingNextRound: boolean;
+  samplingNextRound: number;
   samplingCards: Card[];
   waterInspectionActive: boolean;
 
@@ -83,6 +90,7 @@ export type GameState = {
   roundHistory: RoundResult[];
   lastDrawnCard: Card | null;
   drawnCardsThisRound: Card[];
+  defectPointsLog: DefectPointChange[];
 
   // ゲーム終了
   gameResult: 'playing' | 'clear' | 'failed';
@@ -123,6 +131,8 @@ export type TurnState = {
   forcedDraws: number;
   waterInspectionActive: boolean;
   isPanicked: boolean;
+  samplingNextRound: number;
+  defectPointsLog: DefectPointChange[];
 };
 
 export type RoundResultMulti = {
@@ -157,6 +167,10 @@ export type MultiplayerGameState = {
   roundResults: {
     [round: number]: RoundResultMulti;
   };
+
+  // 抜き取り検査
+  samplingNextRound: number;       // 次ラウンドで実行する残り回数
+  samplingCards: string[];          // 公開中のカードID
 
   // 汚染情報（演出用）
   lastContamination: {

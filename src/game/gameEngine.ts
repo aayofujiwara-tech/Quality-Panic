@@ -1,4 +1,4 @@
-import type { GameState, Card, ProductCard, DefectCard, EventCard, ResponseCard, Difficulty, RoundResult } from './types';
+import type { GameState, Card, ProductCard, DefectCard, EventCard, ResponseCard, Difficulty, RoundResult, DefectPointChange } from './types';
 import { MAX_ROUNDS, PANIC_THRESHOLD, MAX_CONTAMINATION_PER_ROUND, PANIC_CONTAMINATION_PENALTY, RESPONSE_HAND_LIMIT } from './constants';
 import { createInitialDrawPile, createContaminationStock, createResponseStock, shuffle } from './cards';
 
@@ -32,13 +32,14 @@ export function initGame(difficulty: Difficulty): GameState {
 
     snsFireActive: false,
     forcedDraws: 0,
-    samplingNextRound: false,
+    samplingNextRound: 0,
     samplingCards: [],
     waterInspectionActive: false,
 
     roundHistory: [],
     lastDrawnCard: null,
     drawnCardsThisRound: [],
+    defectPointsLog: [],
 
     gameResult: 'playing',
   };
@@ -76,22 +77,24 @@ export function prepareRound(state: GameState): GameState {
   newState.pendingEvent = null;
   newState.lastDrawnCard = null;
   newState.drawnCardsThisRound = [];
+  newState.defectPointsLog = [];
   newState.snsFireActive = false;
   newState.forcedDraws = 0;
   newState.waterInspectionActive = false;
 
-  // 抜き取り検査: 前ラウンドでフラグが立っていたら3枚公開
-  if (state.samplingNextRound && newState.drawPile.length >= 3) {
+  // 抜き取り検査: 前ラウンドでカウンターが1以上なら3枚公開
+  if (state.samplingNextRound > 0 && newState.drawPile.length >= 3) {
     const pile = [...newState.drawPile];
     const revealed = pile.splice(0, 3);
     newState.drawPile = pile;
     newState.samplingCards = revealed;
-    newState.samplingNextRound = false;
+    // カウンターをデクリメント（残りは selectSamplingCard で継続判定）
+    newState.samplingNextRound = state.samplingNextRound - 1;
     newState.phase = 'sampling';
     return newState;
   }
 
-  newState.samplingNextRound = false;
+  newState.samplingNextRound = 0;
   newState.samplingCards = [];
   newState.phase = 'shipping';
   return newState;
@@ -114,18 +117,35 @@ export function selectSamplingCard(state: GameState, index: number): GameState {
     samplingCards: [],
   };
 
+  // 次のフェーズを決定するヘルパー
+  const goToNextPhase = (s: GameState): GameState => {
+    // まだ抜き取り検査のカウンターが残っていれば次の検査を開始
+    if (s.samplingNextRound > 0 && s.drawPile.length >= 3) {
+      const pile = [...s.drawPile];
+      const revealed = pile.splice(0, 3);
+      return {
+        ...s,
+        drawPile: pile,
+        samplingCards: revealed,
+        samplingNextRound: s.samplingNextRound - 1,
+        phase: 'sampling',
+      };
+    }
+    return { ...s, phase: 'shipping' };
+  };
+
   // 選択したカードの効果を適用
   switch (selected.type) {
     case 'product':
       // 製品カード → このラウンドの利益として即確保
       newState.currentRoundProfit = newState.currentRoundProfit + selected.value;
       newState.currentRoundProducts = [...newState.currentRoundProducts, selected];
-      newState.phase = 'shipping';
+      newState = goToNextPhase(newState);
       break;
 
     case 'defect':
       // 不具合カード → ゲームから除外（山札に戻さない＝捨て札）
-      newState.phase = 'shipping';
+      newState = goToNextPhase(newState);
       break;
 
     case 'event':
@@ -183,9 +203,15 @@ function handleProductCard(state: GameState, card: ProductCard): GameState {
 function handleDefectCard(state: GameState, card: DefectCard): GameState {
   // 水際検査が有効なら自動無効化
   if (state.waterInspectionActive) {
+    const logEntry: DefectPointChange = {
+      points: state.currentDefectPoints,
+      reason: `🛡️水際検査 → ${card.name}無効`,
+      changeType: 'nullified',
+    };
     return {
       ...state,
       waterInspectionActive: false,
+      defectPointsLog: [...state.defectPointsLog, logEntry],
     };
   }
 
@@ -220,11 +246,18 @@ function applyDefectPoints(state: GameState, card: DefectCard): GameState {
 
   const newDefectPoints = state.currentDefectPoints + points;
 
+  const logEntry: DefectPointChange = {
+    points: newDefectPoints,
+    reason: card.name + (state.snsFireActive ? '(炎上2倍)' : ''),
+    changeType: 'increase',
+  };
+
   const newState: GameState = {
     ...state,
     currentDefectPoints: newDefectPoints,
     pendingDefect: null,
     snsFireActive: false, // 使い切り
+    defectPointsLog: [...state.defectPointsLog, logEntry],
   };
 
   if (newDefectPoints >= state.panicThreshold) {
@@ -243,11 +276,19 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
   if (!card) return state;
 
   const newHand = state.responseHand.filter((_, i) => i !== cardIndex);
+
+  const logEntry: DefectPointChange = {
+    points: state.currentDefectPoints,
+    reason: `${card.name} → ${defect.name}無効`,
+    changeType: 'nullified',
+  };
+
   let newState: GameState = {
     ...state,
     responseHand: newHand,
     pendingDefect: null,
     phase: 'shipping',
+    defectPointsLog: [...state.defectPointsLog, logEntry],
   };
 
   switch (card.responseType) {
@@ -353,6 +394,11 @@ function applyEventEffect(state: GameState, card: EventCard): GameState {
       if (drawnDefects.length > 0 && state.currentDefectPoints > 0) {
         const lastDefect = drawnDefects[drawnDefects.length - 1];
         newState.currentDefectPoints = Math.max(0, state.currentDefectPoints - lastDefect.defectPoints);
+        newState.defectPointsLog = [...state.defectPointsLog, {
+          points: newState.currentDefectPoints,
+          reason: card.name,
+          changeType: 'decrease' as const,
+        }];
       }
       break;
     }
@@ -364,20 +410,34 @@ function applyEventEffect(state: GameState, card: EventCard): GameState {
       break;
 
     case 'sampling_inspection':
-      newState.samplingNextRound = true;
+      newState.samplingNextRound = state.samplingNextRound + 1;
       break;
   }
 
   return newState;
 }
 
-// イベント表示を閉じて出荷フェーズに戻る
+// イベント表示を閉じて次のフェーズへ
 export function dismissEvent(state: GameState): GameState {
-  return {
+  const newState: GameState = {
     ...state,
-    phase: 'shipping',
     pendingEvent: null,
   };
+
+  // 抜き取り検査のカウンターが残っていれば次の検査を開始
+  if (newState.samplingNextRound > 0 && newState.drawPile.length >= 3) {
+    const pile = [...newState.drawPile];
+    const revealed = pile.splice(0, 3);
+    return {
+      ...newState,
+      drawPile: pile,
+      samplingCards: revealed,
+      samplingNextRound: newState.samplingNextRound - 1,
+      phase: 'sampling',
+    };
+  }
+
+  return { ...newState, phase: 'shipping' };
 }
 
 // パニック発生
@@ -494,6 +554,7 @@ export function nextRound(state: GameState): GameState {
     pendingEvent: null,
     lastDrawnCard: null,
     drawnCardsThisRound: [],
+    defectPointsLog: [],
     snsFireActive: false,
     forcedDraws: 0,
     waterInspectionActive: false,

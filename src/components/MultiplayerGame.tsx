@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
-import type { Room, Card, DefectCard, EventCard, ResponseCard, MultiplayerGameState } from '../game/types';
+import type { Room, Card, DefectCard, EventCard, ResponseCard, MultiplayerGameState, DefectPointChange } from '../game/types';
 import {
   startTurn, multiDrawCard, multiStopDrawing, multiHandlePanic,
   multiCanStop, multiUseResponseCard, multiSkipDefectResponse,
-  multiUseDesignChange, advanceTurn,
+  multiUseDesignChange, advanceTurn, multiSelectSamplingCard,
 } from '../game/multiplayerEngine';
 import { writeGameState, writePlayerResponseHand, writePlayerScore } from '../firebase/gameSync';
 import { listenRoom } from '../firebase/roomManager';
@@ -13,6 +13,7 @@ import { DrawnCards } from './DrawnCards';
 import { ActionButtons } from './ActionButtons';
 import { ResponseHand } from './ResponseHand';
 import { DefectResponse } from './DefectResponse';
+import { SamplingModal } from './SamplingModal';
 import { PanicCardHistory } from './RoundResult';
 
 type Props = {
@@ -25,6 +26,7 @@ type Props = {
 type LocalPhase =
   | 'waiting_turn'    // 相手のターン待ち
   | 'prepare'         // 自分のターン準備
+  | 'sampling'        // 抜き取り検査中
   | 'shipping'        // 出荷中（カードめくり）
   | 'defect_response' // 不具合対応判断
   | 'event_display'   // イベント表示
@@ -99,6 +101,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   const [turnProfit, setTurnProfit] = useState(0);
   const [turnPanicked, setTurnPanicked] = useState(false);
   const [lastDrawnCards, setLastDrawnCards] = useState<Card[]>([]);
+  const [lastDefectPointsLog, setLastDefectPointsLog] = useState<DefectPointChange[]>([]);
   const [myResponseHand, setMyResponseHand] = useState<ResponseCard[]>([]);
   const [myScore, setMyScore] = useState(0);
 
@@ -123,6 +126,12 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   const drawnCardsThisTurn = useMemo(
     () => resolveCards(gameState?.turnState?.drawnCards ?? [], cardMaster),
     [gameState?.turnState?.drawnCards, cardMaster],
+  );
+
+  // 抜き取り検査カードのCard[]変換
+  const samplingCardsResolved = useMemo(
+    () => resolveCards(gameState?.samplingCards ?? [], cardMaster),
+    [gameState?.samplingCards, cardMaster],
   );
 
   // ルーム監視
@@ -172,7 +181,12 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     if (!gameState || !isMyTurn) return;
     const newState = startTurn(gameState);
     await writeGameState(roomCode, newState);
-    setLocalPhase('shipping');
+    // 抜き取り検査がある場合はサンプリングフェーズへ
+    if ((newState.samplingCards ?? []).length > 0) {
+      setLocalPhase('sampling');
+    } else {
+      setLocalPhase('shipping');
+    }
     setLastDrawnCard(null);
     setTurnProfit(0);
     setTurnPanicked(false);
@@ -189,6 +203,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
     if (result.panicked) {
       setLastDrawnCards(resolveCards(result.gameState.turnState?.drawnCards ?? [], cardMaster));
+      setLastDefectPointsLog(result.gameState.turnState?.defectPointsLog ?? []);
       const panicState = multiHandlePanic(result.gameState, uid);
       await writeGameState(roomCode, panicState);
       setTurnPanicked(true);
@@ -217,6 +232,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     setTurnProfit(profit);
     setTurnPanicked(false);
     setLastDrawnCards(drawnCardsThisTurn);
+    setLastDefectPointsLog(gameState?.turnState?.defectPointsLog ?? []);
 
     await Promise.all([
       writeGameState(roomCode, newState),
@@ -253,6 +269,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
     if (panicked) {
       setLastDrawnCards(drawnCardsThisTurn);
+      setLastDefectPointsLog(newState.turnState?.defectPointsLog ?? []);
       const panicState = multiHandlePanic(newState, uid);
       await writeGameState(roomCode, panicState);
       setTurnPanicked(true);
@@ -283,6 +300,18 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
       writePlayerResponseHand(roomCode, uid, newResponseHand),
     ]);
   }, [gameState, roomCode, uid, myResponseHand]);
+
+  const handleSelectSamplingCard = useCallback(async (index: number) => {
+    if (!gameState) return;
+    const newState = multiSelectSamplingCard(gameState, index, cardMaster);
+    await writeGameState(roomCode, newState);
+    // まだサンプリングカードが残っていれば継続
+    if ((newState.samplingCards ?? []).length > 0) {
+      setLocalPhase('sampling');
+    } else {
+      setLocalPhase('shipping');
+    }
+  }, [gameState, roomCode, cardMaster]);
 
   const handleNextTurn = useCallback(async () => {
     if (!gameState) return;
@@ -391,6 +420,11 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                 汚染カード {gameState.lastContamination.count}枚 が山札に投入されました
               </div>
             )}
+            {(gameState.samplingNextRound ?? 0) > 0 && (
+              <div className="text-sm text-teal-400">
+                🔍 抜き取り検査効果: 3枚から1枚を選べます{(gameState.samplingNextRound ?? 0) >= 2 ? `（${gameState.samplingNextRound}回）` : ''}
+              </div>
+            )}
             <button
               onClick={handleStartTurn}
               className="px-8 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
@@ -438,7 +472,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                 <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
                 <div className="text-xs sm:text-sm text-gray-500 mt-1">対応カードは入手できません</div>
                 {lastDrawnCards.length > 0 && (
-                  <PanicCardHistory cards={lastDrawnCards} />
+                  <PanicCardHistory cards={lastDrawnCards} defectPointsLog={lastDefectPointsLog} />
                 )}
               </>
             ) : (
@@ -527,6 +561,15 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
           event={pendingEvent}
           turnState={gameState.turnState}
           onDismiss={handleDismissEvent}
+        />
+      )}
+
+      {/* 抜き取り検査モーダル */}
+      {localPhase === 'sampling' && samplingCardsResolved.length > 0 && (
+        <SamplingModal
+          cards={samplingCardsResolved}
+          onSelect={handleSelectSamplingCard}
+          remaining={gameState.samplingNextRound ?? 0}
         />
       )}
     </div>

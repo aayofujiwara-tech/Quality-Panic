@@ -1,4 +1,4 @@
-import type { RoundResult as RoundResultType, Card } from '../game/types';
+import type { RoundResult as RoundResultType, Card, DefectPointChange } from '../game/types';
 
 type Props = {
   result: RoundResultType;
@@ -7,6 +7,7 @@ type Props = {
   responseCardsGained: number;
   onNext: () => void;
   drawnCards?: Card[];
+  defectPointsLog?: DefectPointChange[];
 };
 
 function cardStyle(card: Card): string {
@@ -44,18 +45,17 @@ function cardLabel(card: Card): string {
   }
 }
 
-/** パニック時のカード履歴＋不具合Pt推移 */
-export function PanicCardHistory({ cards }: { cards: Card[] }) {
-  // 不具合Ptの累積推移を計算
-  const defectProgression: number[] = [0];
-  let cumulative = 0;
-  for (const card of cards) {
-    if (card.type === 'defect') {
-      cumulative += card.defectPoints;
-    }
-    defectProgression.push(cumulative);
+/** 不具合Pt変動の1エントリのアイコン */
+function changeIcon(changeType: DefectPointChange['changeType']): string {
+  switch (changeType) {
+    case 'increase': return '';
+    case 'decrease': return '✨';
+    case 'nullified': return '🩹';
   }
+}
 
+/** パニック時のカード履歴＋不具合Pt推移 */
+export function PanicCardHistory({ cards, defectPointsLog }: { cards: Card[]; defectPointsLog?: DefectPointChange[] }) {
   // パニック原因カードのインデックスを特定（最後の不具合カード）
   let panicCauseIndex = -1;
   for (let i = cards.length - 1; i >= 0; i--) {
@@ -65,25 +65,70 @@ export function PanicCardHistory({ cards }: { cards: Card[] }) {
     }
   }
 
+  // ログがある場合はログベースで推移表示、なければカードから推定
+  const hasLog = defectPointsLog && defectPointsLog.length > 0;
+
   return (
     <div className="w-full max-w-md mt-2">
       {/* 不具合Pt推移 */}
       <div className="flex items-center justify-center gap-1 text-xs sm:text-sm mb-3 flex-wrap">
         <span className="text-gray-400">不具合Pt:</span>
-        {defectProgression.map((pt, i) => (
-          <span key={i} className="flex items-center">
-            {i > 0 && <span className="text-gray-600 mx-0.5">→</span>}
-            <span className={
-              i === defectProgression.length - 1
-                ? 'text-red-400 font-bold'
-                : pt === 0
-                  ? 'text-green-400'
-                  : 'text-yellow-400'
-            }>
-              {pt}
-            </span>
-          </span>
-        ))}
+        {hasLog ? (
+          <>
+            <span className="text-green-400">0</span>
+            {defectPointsLog.map((entry, i) => (
+              <span key={i} className="flex items-center">
+                <span className="text-gray-600 mx-0.5">→</span>
+                {entry.changeType !== 'increase' && (
+                  <span className="mr-0.5" title={entry.reason}>{changeIcon(entry.changeType)}</span>
+                )}
+                <span
+                  className={
+                    i === defectPointsLog.length - 1
+                      ? 'text-red-400 font-bold'
+                      : entry.changeType === 'decrease'
+                        ? 'text-emerald-400'
+                        : entry.changeType === 'nullified'
+                          ? 'text-blue-400'
+                          : entry.points === 0
+                            ? 'text-green-400'
+                            : 'text-yellow-400'
+                  }
+                  title={entry.reason}
+                >
+                  {entry.points}
+                </span>
+              </span>
+            ))}
+          </>
+        ) : (
+          <>
+            {(() => {
+              const progression: number[] = [0];
+              let cum = 0;
+              for (const card of cards) {
+                if (card.type === 'defect') {
+                  cum += card.defectPoints;
+                  progression.push(cum);
+                }
+              }
+              return progression.map((pt, i) => (
+                <span key={i} className="flex items-center">
+                  {i > 0 && <span className="text-gray-600 mx-0.5">→</span>}
+                  <span className={
+                    i === progression.length - 1
+                      ? 'text-red-400 font-bold'
+                      : pt === 0
+                        ? 'text-green-400'
+                        : 'text-yellow-400'
+                  }>
+                    {pt}
+                  </span>
+                </span>
+              ));
+            })()}
+          </>
+        )}
         <span className="text-red-400 font-bold ml-1">パニック！</span>
       </div>
 
@@ -108,7 +153,7 @@ export function PanicCardHistory({ cards }: { cards: Card[] }) {
   );
 }
 
-export function RoundResultView({ result, totalScore, targetScore, responseCardsGained, onNext, drawnCards }: Props) {
+export function RoundResultView({ result, totalScore, targetScore, responseCardsGained, onNext, drawnCards, defectPointsLog }: Props) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-12">
       {result.panicked ? (
@@ -118,7 +163,7 @@ export function RoundResultView({ result, totalScore, targetScore, responseCards
           <div className="text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
           <div className="text-sm text-gray-500 mt-1">対応カードは入手できません</div>
           {drawnCards && drawnCards.length > 0 && (
-            <PanicCardHistory cards={drawnCards} />
+            <PanicCardHistory cards={drawnCards} defectPointsLog={defectPointsLog} />
           )}
         </>
       ) : (

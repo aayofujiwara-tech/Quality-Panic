@@ -1,6 +1,6 @@
 import type {
   Card, DefectCard, EventCard, ProductCard, ResponseCard,
-  MultiplayerGameState, TurnState, DefectPointChange,
+  MultiplayerGameState, TurnState,
 } from './types';
 import {
   MAX_ROUNDS_MULTI, PANIC_THRESHOLD, MAX_CONTAMINATION_PER_ROUND,

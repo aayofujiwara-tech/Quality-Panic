@@ -61,19 +61,19 @@ export function EventModal({ event, state, onDismiss }: Props) {
   const colorClass = eventColors[event.eventType] ?? 'border-purple-500 bg-purple-900/40';
 
   return (
-    <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
-      <div className={`border-2 rounded-xl p-6 max-w-md w-full mx-4 shadow-2xl ${colorClass}`}>
+    <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50">
+      <div className={`border-2 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-md w-full sm:mx-4 shadow-2xl ${colorClass}`}>
         <div className="text-center">
-          <div className="text-5xl mb-3">{icon}</div>
-          <div className="text-xl font-bold text-white mb-2">{event.name}</div>
-          <div className="text-gray-300 whitespace-pre-line mb-6">
+          <div className="text-4xl sm:text-5xl mb-2 sm:mb-3">{icon}</div>
+          <div className="text-lg sm:text-xl font-bold text-white mb-2">{event.name}</div>
+          <div className="text-sm sm:text-base text-gray-300 whitespace-pre-line mb-4 sm:mb-6">
             {getEffectDescription(event, state)}
           </div>
         </div>
 
         <button
           onClick={onDismiss}
-          className="w-full px-4 py-3 bg-purple-700 hover:bg-purple-600 border border-purple-500
+          className="w-full px-4 py-3 min-h-[44px] bg-purple-700 hover:bg-purple-600 border border-purple-500
             rounded-lg text-white font-bold transition-all cursor-pointer"
         >
           了解

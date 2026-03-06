@@ -55,29 +55,31 @@ function cardEffect(card: Card): string {
 
 export function SamplingModal({ cards, onSelect }: Props) {
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
-      <div className="border-2 border-teal-500 bg-gray-900/95 rounded-xl p-6 max-w-2xl w-full mx-4 shadow-2xl">
-        <div className="text-center mb-6">
-          <div className="text-3xl mb-2">🔍</div>
-          <div className="text-xl font-bold text-teal-300">
+    <div className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50">
+      <div className="border-2 border-teal-500 bg-gray-900/95 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-2xl w-full sm:mx-4 shadow-2xl max-h-[85vh] overflow-y-auto">
+        <div className="text-center mb-4 sm:mb-6">
+          <div className="text-2xl sm:text-3xl mb-2">🔍</div>
+          <div className="text-base sm:text-xl font-bold text-teal-300">
             抜き取り検査 — 3枚から1枚を選択
           </div>
-          <div className="text-sm text-gray-400 mt-1">
+          <div className="text-xs sm:text-sm text-gray-400 mt-1">
             選ばなかった2枚は山札に戻されます
           </div>
         </div>
 
-        <div className="grid grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
           {cards.map((card, i) => (
             <button
               key={i}
               onClick={() => onSelect(i)}
-              className={`border-2 rounded-lg p-4 flex flex-col items-center gap-2
-                transition-all cursor-pointer ${cardColor(card)}`}
+              className={`border-2 rounded-lg p-3 sm:p-4 flex flex-row sm:flex-col items-center gap-2 sm:gap-2
+                min-h-[44px] transition-all cursor-pointer ${cardColor(card)}`}
             >
-              <div className="text-3xl">{cardIcon(card)}</div>
-              <div className="text-sm font-bold text-white">{cardLabel(card)}</div>
-              <div className="text-xs text-gray-300 text-center">{cardEffect(card)}</div>
+              <div className="text-2xl sm:text-3xl">{cardIcon(card)}</div>
+              <div className="flex-1 sm:flex-none text-left sm:text-center">
+                <div className="text-sm font-bold text-white">{cardLabel(card)}</div>
+                <div className="text-xs text-gray-300">{cardEffect(card)}</div>
+              </div>
             </button>
           ))}
         </div>

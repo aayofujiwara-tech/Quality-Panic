@@ -25,9 +25,9 @@ export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Pro
   if (hand.length === 0) return null;
 
   return (
-    <div className="border-t border-gray-700 px-6 py-3">
-      <div className="text-xs text-gray-500 mb-2">対応カード手札 ({hand.length}/3)</div>
-      <div className="flex gap-2 flex-wrap">
+    <div className="border-t border-gray-700 px-3 sm:px-6 py-2 sm:py-3">
+      <div className="text-xs text-gray-500 mb-1.5 sm:mb-2">対応カード手札 ({hand.length}/3)</div>
+      <div className="flex gap-1.5 sm:gap-2 flex-wrap">
         {hand.map((card, i) => {
           const isDefectResponse = card.responseType !== 'design_change';
           const isHighlighted = highlightUsable && isDefectResponse;
@@ -36,14 +36,14 @@ export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Pro
               key={i}
               onClick={() => onUseCard(i)}
               disabled={disabled}
-              className={`px-3 py-2 rounded border text-sm font-medium transition-all cursor-pointer
+              className={`px-2 sm:px-3 py-2 min-h-[44px] rounded border text-xs sm:text-sm font-medium transition-all cursor-pointer
                 ${cardColor[card.responseType]}
                 ${isHighlighted ? 'ring-2 ring-yellow-400 scale-105' : ''}
                 ${disabled ? 'opacity-50 cursor-not-allowed' : ''}
               `}
               title={card.description}
             >
-              <span className="mr-1">{cardIcon[card.responseType]}</span>
+              <span className="mr-0.5 sm:mr-1">{cardIcon[card.responseType]}</span>
               {card.name}
             </button>
           );

@@ -14,19 +14,19 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
 
   if (screen === 'solo_difficulty') {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen gap-8">
+      <div className="flex flex-col items-center justify-center min-h-screen gap-6 sm:gap-8 px-4">
         <div className="text-center">
-          <h1 className="text-5xl font-bold text-amber-400 mb-2">品証パニック</h1>
-          <p className="text-gray-400 text-lg">ソロモード</p>
+          <h1 className="text-3xl sm:text-5xl font-bold text-amber-400 mb-2">品証パニック</h1>
+          <p className="text-gray-400 text-base sm:text-lg">ソロモード</p>
         </div>
 
-        <div className="flex flex-col gap-3 w-64">
+        <div className="flex flex-col gap-3 w-full max-w-[280px]">
           <div className="text-sm text-gray-400 text-center mb-1">難易度を選択</div>
           {DIFFICULTIES.map((d) => (
             <button
               key={d.name}
               onClick={() => onStart(d)}
-              className="px-6 py-3 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-amber-500 rounded-lg text-white font-medium transition-all cursor-pointer"
+              className="px-6 py-3 min-h-[44px] bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-amber-500 rounded-lg text-white font-medium transition-all cursor-pointer"
             >
               {d.name}
               <span className="text-gray-400 ml-2 text-sm">（目標{d.targetScore}点）</span>
@@ -34,7 +34,7 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
           ))}
           <button
             onClick={() => setScreen('top')}
-            className="mt-2 px-6 py-2 text-gray-400 hover:text-white transition-colors cursor-pointer"
+            className="mt-2 px-6 py-2 min-h-[44px] text-gray-400 hover:text-white transition-colors cursor-pointer"
           >
             戻る
           </button>
@@ -44,21 +44,21 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
   }
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen gap-8">
+    <div className="flex flex-col items-center justify-center min-h-screen gap-6 sm:gap-8 px-4">
       <div className="text-center">
-        <h1 className="text-5xl font-bold text-amber-400 mb-2">品証パニック</h1>
-        <p className="text-gray-400 text-lg">Quality Panic</p>
+        <h1 className="text-3xl sm:text-5xl font-bold text-amber-400 mb-2">品証パニック</h1>
+        <p className="text-gray-400 text-base sm:text-lg">Quality Panic</p>
       </div>
 
-      <p className="text-gray-500 text-sm max-w-md text-center">
+      <p className="text-gray-500 text-xs sm:text-sm max-w-md text-center px-2">
         品質保証テーマのプッシュ・ユア・ラック系カードゲーム。
         山札からカードをめくり、パニックを起こさずに利益を稼げ！
       </p>
 
-      <div className="flex flex-col gap-3 w-64">
+      <div className="flex flex-col gap-3 w-full max-w-[280px]">
         <button
           onClick={() => setScreen('solo_difficulty')}
-          className="px-6 py-4 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-amber-500 rounded-lg text-white font-medium transition-all cursor-pointer"
+          className="px-6 py-4 min-h-[44px] bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-amber-500 rounded-lg text-white font-medium transition-all cursor-pointer"
         >
           ソロプレイ
           <span className="block text-gray-400 text-xs mt-1">1人で目標スコアに挑戦</span>
@@ -68,7 +68,7 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
 
         <button
           onClick={() => onMultiplayer?.('create_room')}
-          className="px-6 py-4 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-blue-500 rounded-lg text-white font-medium transition-all cursor-pointer"
+          className="px-6 py-4 min-h-[44px] bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-blue-500 rounded-lg text-white font-medium transition-all cursor-pointer"
         >
           ルームを作る
           <span className="block text-gray-400 text-xs mt-1">ルームコードを発行して対戦相手を待つ</span>
@@ -76,7 +76,7 @@ export function TitleScreen({ onStart, onMultiplayer }: Props) {
 
         <button
           onClick={() => onMultiplayer?.('join_room')}
-          className="px-6 py-4 bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-blue-500 rounded-lg text-white font-medium transition-all cursor-pointer"
+          className="px-6 py-4 min-h-[44px] bg-gray-800 hover:bg-gray-700 border border-gray-600 hover:border-blue-500 rounded-lg text-white font-medium transition-all cursor-pointer"
         >
           ルームに入る
           <span className="block text-gray-400 text-xs mt-1">ルームコードを入力して参加</span>

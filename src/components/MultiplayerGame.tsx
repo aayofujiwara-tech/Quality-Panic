@@ -7,6 +7,7 @@ import {
 } from '../game/multiplayerEngine';
 import { writeGameState, writePlayerResponseHand, writePlayerScore } from '../firebase/gameSync';
 import { listenRoom } from '../firebase/roomManager';
+import { MAX_CONTAMINATION_PER_ROUND } from '../game/constants';
 import { DrawPile } from './DrawPile';
 import { DrawnCards } from './DrawnCards';
 import { ActionButtons } from './ActionButtons';
@@ -303,6 +304,28 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
   const isShipping = localPhase === 'shipping' || localPhase === 'defect_response' || localPhase === 'event_display';
 
+  // 次ラウンド汚染予測
+  const nextContamination = useMemo(() => {
+    if (!gameState || gameState.round >= gameState.maxRounds) return undefined;
+    const roundResult = gameState.roundResults?.[gameState.round];
+    let confirmedProfit = 0;
+    let hasConfirmed = false;
+    if (roundResult) {
+      for (const pid of playerOrder) {
+        if (roundResult[pid]) {
+          confirmedProfit += roundResult[pid].profit;
+          hasConfirmed = true;
+        }
+      }
+    }
+    const count = Math.min(
+      Math.ceil(confirmedProfit / 2),
+      MAX_CONTAMINATION_PER_ROUND,
+      (gameState.contaminationStock ?? []).length,
+    );
+    return { count, tentative: !hasConfirmed };
+  }, [gameState?.round, gameState?.maxRounds, gameState?.roundResults, gameState?.contaminationStock?.length, playerOrder]);
+
   // ===== レンダリング =====
 
   if (!gameState) {
@@ -379,6 +402,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
               remaining={(gameState.drawPile ?? []).length}
               defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
               drawPile={drawPileCards}
+              nextContamination={nextContamination}
             />
             <div className="flex-1 flex flex-col">
               <ActiveEffectsMulti turnState={gameState.turnState} />

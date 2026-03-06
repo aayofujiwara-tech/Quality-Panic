@@ -119,20 +119,8 @@ export function startTurn(gameState: MultiplayerGameState): MultiplayerGameState
     },
   };
 
-  // 抜き取り検査が残っていれば先に実行
-  if (gameState.samplingNextRound > 0 && (gameState.drawPile ?? []).length >= 3) {
-    const pile = [...(gameState.drawPile ?? [])];
-    const revealed = pile.splice(0, 3);
-    return {
-      ...newState,
-      phase: 'shipping',  // ローカルフェーズ側で sampling に切り替える
-      drawPile: pile,
-      samplingCards: revealed,
-      samplingNextRound: gameState.samplingNextRound - 1,
-    };
-  }
-
-  return { ...newState, phase: 'shipping', samplingCards: [] };
+  // samplingCards は advanceRound で準備済み（次ラウンド準備フェーズで実行）
+  return { ...newState, phase: 'shipping' };
 }
 
 // ===== 抜き取り検査: カード選択 =====
@@ -577,16 +565,28 @@ function advanceRound(
     drawPile.push(contStock.shift()!);
   }
 
+  const shuffledPile = shuffle(drawPile);
+
+  // 抜き取り検査: カウンターが1以上なら汚染投入・シャッフル後に3枚公開
+  let samplingNextRound = gameState.samplingNextRound;
+  let samplingCards: string[] = [];
+  if (samplingNextRound > 0 && shuffledPile.length >= 3) {
+    samplingCards = shuffledPile.splice(0, 3);
+    samplingNextRound--;
+  }
+
   return {
     ...gameState,
     phase: 'prepare',
     round: nextRound,
-    drawPile: shuffle(drawPile),
+    drawPile: shuffledPile,
     contaminationStock: contStock,
     currentPlayerUid: playerOrder[0],
     currentPlayerIndex: 0,
     turnState: null,
     lastContamination: toAdd > 0 ? { count: toAdd, round: nextRound } : null,
+    samplingNextRound,
+    samplingCards,
   };
 }
 

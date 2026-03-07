@@ -5,6 +5,8 @@ type Props = {
   hand: ResponseCard[];
   onUseCard: (index: number) => void;
   onSkip: () => void;
+  disabled?: boolean;
+  cardUsingIndex?: number | null;
 };
 
 const cardIcon: Record<string, string> = {
@@ -13,7 +15,7 @@ const cardIcon: Record<string, string> = {
   inspection: '🛡️',
 };
 
-export function DefectResponse({ defect, hand, onUseCard, onSkip }: Props) {
+export function DefectResponse({ defect, hand, onUseCard, onSkip, disabled, cardUsingIndex }: Props) {
   const usableCards = hand
     .map((card, index) => ({ card, index }))
     .filter(({ card }) =>
@@ -41,9 +43,12 @@ export function DefectResponse({ defect, hand, onUseCard, onSkip }: Props) {
             {usableCards.map(({ card, index }) => (
               <button
                 key={index}
-                onClick={() => onUseCard(index)}
-                className="flex items-center gap-3 px-3 sm:px-4 py-3 min-h-[44px] bg-green-900/60 border border-green-600 rounded-lg
-                  hover:bg-green-800 transition-all text-left cursor-pointer"
+                onClick={() => !disabled && onUseCard(index)}
+                disabled={disabled}
+                className={`flex items-center gap-3 px-3 sm:px-4 py-3 min-h-[44px] bg-green-900/60 border border-green-600 rounded-lg
+                  hover:bg-green-800 transition-all text-left cursor-pointer
+                  ${cardUsingIndex === index ? 'card-use-glow' : ''}
+                  ${disabled ? 'opacity-50 cursor-not-allowed' : ''}`}
               >
                 <span className="text-lg sm:text-xl">{cardIcon[card.responseType]}</span>
                 <div>

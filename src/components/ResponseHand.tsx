@@ -6,6 +6,7 @@ type Props = {
   onUseCard: (index: number) => void;
   disabled?: boolean;
   highlightUsable?: boolean; // 不具合対応時にtrue
+  cardUsingIndex?: number | null;
 };
 
 const cardColor: Record<string, string> = {
@@ -154,7 +155,7 @@ function CardWithTooltip({ card, index, onUseCard, disabled, isHighlighted, tool
   );
 }
 
-export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Props) {
+export function ResponseHand({ hand, onUseCard, disabled, highlightUsable, cardUsingIndex }: Props) {
   const [tooltipIndex, setTooltipIndex] = useState<number | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -180,16 +181,17 @@ export function ResponseHand({ hand, onUseCard, disabled, highlightUsable }: Pro
           const isDefectResponse = card.responseType !== 'design_change';
           const isHighlighted = highlightUsable === true && isDefectResponse;
           return (
-            <CardWithTooltip
-              key={i}
-              card={card}
-              index={i}
-              onUseCard={onUseCard}
-              disabled={disabled}
-              isHighlighted={isHighlighted}
-              tooltipIndex={tooltipIndex}
-              setTooltipIndex={setTooltipIndex}
-            />
+            <div key={i} className={cardUsingIndex === i ? 'card-use-glow' : ''}>
+              <CardWithTooltip
+                card={card}
+                index={i}
+                onUseCard={onUseCard}
+                disabled={disabled}
+                isHighlighted={isHighlighted}
+                tooltipIndex={tooltipIndex}
+                setTooltipIndex={setTooltipIndex}
+              />
+            </div>
           );
         })}
       </div>

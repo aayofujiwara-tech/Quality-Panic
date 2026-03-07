@@ -4,6 +4,7 @@ type Props = {
   event: EventCard;
   state: GameState;
   onDismiss: () => void;
+  glowing?: boolean;
 };
 
 const eventIcons: Record<string, string> = {
@@ -56,13 +57,13 @@ function getEffectDescription(event: EventCard, state: GameState): string {
   }
 }
 
-export function EventModal({ event, state, onDismiss }: Props) {
+export function EventModal({ event, state, onDismiss, glowing }: Props) {
   const icon = eventIcons[event.eventType] ?? '⚡';
   const colorClass = eventColors[event.eventType] ?? 'border-purple-500 bg-purple-900/40';
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50">
-      <div className={`border-2 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-md w-full sm:mx-4 shadow-2xl ${colorClass}`}>
+      <div className={`border-2 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-md w-full sm:mx-4 shadow-2xl ${colorClass} ${glowing ? 'event-glow' : ''}`}>
         <div className="text-center">
           <div className="text-4xl sm:text-5xl mb-2 sm:mb-3">{icon}</div>
           <div className="text-lg sm:text-xl font-bold text-white mb-2">{event.name}</div>

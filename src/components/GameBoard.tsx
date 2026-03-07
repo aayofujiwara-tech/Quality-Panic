@@ -12,6 +12,7 @@ import { RoundResultView } from './RoundResult';
 import { DefectResponse } from './DefectResponse';
 import { EventModal } from './EventModal';
 import { SamplingModal } from './SamplingModal';
+import { CardFlipAnimation } from './CardFlipAnimation';
 
 type Props = {
   state: GameState;
@@ -122,8 +123,6 @@ export function GameBoard({
               defectRate={defectRate}
               drawPile={state.drawPile}
               nextContamination={nextContamination}
-              flipping={anim.flipping}
-              flippingCard={anim.flippingCard}
             />
             <div className="flex-1 flex flex-col">
               <ActiveEffects state={state} />
@@ -133,6 +132,7 @@ export function GameBoard({
                 currentDefectPoints={state.currentDefectPoints}
                 panicThreshold={state.panicThreshold}
               />
+              <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
               <ActionButtons
                 onDraw={onDraw}
                 onStop={onStop}

@@ -17,6 +17,7 @@ import { ResponseHand } from './ResponseHand';
 import { DefectResponse } from './DefectResponse';
 import { SamplingModal } from './SamplingModal';
 import { PanicCardHistory } from './RoundResult';
+import { CardFlipAnimation } from './CardFlipAnimation';
 
 type Props = {
   roomCode: string;
@@ -506,8 +507,6 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
               defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
               drawPile={drawPileCards}
               nextContamination={nextContamination}
-              flipping={anim.flipping}
-              flippingCard={anim.flippingCard}
             />
             <div className="flex-1 flex flex-col">
               <ActiveEffectsMulti turnState={gameState.turnState} />
@@ -517,6 +516,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                 currentDefectPoints={gameState.turnState.currentDefectPoints}
                 panicThreshold={gameState.turnState.panicThreshold}
               />
+              <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
               <ActionButtons
                 onDraw={handleDraw}
                 onStop={handleStop}

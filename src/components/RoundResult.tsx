@@ -8,6 +8,7 @@ type Props = {
   onNext: () => void;
   drawnCards?: Card[];
   defectPointsLog?: DefectPointChange[];
+  panicking?: boolean;
 };
 
 function cardStyle(card: Card): string {
@@ -153,12 +154,12 @@ export function PanicCardHistory({ cards, defectPointsLog }: { cards: Card[]; de
   );
 }
 
-export function RoundResultView({ result, totalScore, targetScore, responseCardsGained, onNext, drawnCards, defectPointsLog }: Props) {
+export function RoundResultView({ result, totalScore, targetScore, responseCardsGained, onNext, drawnCards, defectPointsLog, panicking }: Props) {
   return (
     <div className="flex flex-col items-center justify-center gap-6 py-12">
       {result.panicked ? (
         <>
-          <div className="text-4xl font-bold text-red-400">パニック発生！</div>
+          <div className={`text-4xl font-bold text-red-400 ${panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
           <div className="text-gray-400">このラウンドの利益は全て失われました...</div>
           <div className="text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
           <div className="text-sm text-gray-500 mt-1">対応カードは入手できません</div>

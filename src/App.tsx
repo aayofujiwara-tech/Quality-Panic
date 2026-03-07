@@ -5,6 +5,7 @@ import {
   useResponseCard, skipResponseCard, useDesignChange, dismissEvent,
   selectSamplingCard,
 } from './game/gameEngine';
+import { useAnimations } from './game/animations';
 import { TitleScreen } from './components/TitleScreen';
 import { GameBoard } from './components/GameBoard';
 import { GameOverScreen } from './components/GameOverScreen';
@@ -23,47 +24,118 @@ type AppScreen =
 
 function App() {
   const [screen, setScreen] = useState<AppScreen>({ type: 'title' });
+  const animations = useAnimations();
 
   // ===== ソロモード ハンドラ =====
   const handleStart = useCallback((difficulty: Difficulty) => {
+    animations.reset();
     setScreen({ type: 'solo', state: initGame(difficulty) });
-  }, []);
+  }, [animations]);
 
   const updateSolo = useCallback((fn: (prev: GameState) => GameState) => {
     setScreen((s) => s.type === 'solo' ? { ...s, state: fn(s.state) } : s);
   }, []);
 
-  const handlePrepare = useCallback(() => updateSolo(prepareRound), [updateSolo]);
-  const handleDraw = useCallback(() => updateSolo(drawCard), [updateSolo]);
-  const handleStop = useCallback(() => updateSolo(stopDrawing), [updateSolo]);
+  const handlePrepare = useCallback(() => {
+    setScreen((s) => {
+      if (s.type !== 'solo') return s;
+      const prev = s.state;
+      const next = prepareRound(prev);
+
+      // 汚染投入演出
+      if (prev.round > 1) {
+        const added = prev.contaminationStock.length - next.contaminationStock.length;
+        if (added > 0) {
+          animations.showContamination(added);
+        }
+      }
+
+      return { ...s, state: next };
+    });
+  }, [animations]);
+
+  // カードをめくる（フリップアニメーション付き）
+  const handleDraw = useCallback(() => {
+    if (animations.anim.busy) return;
+
+    setScreen((s) => {
+      if (s.type !== 'solo') return s;
+      if (s.state.drawPile.length === 0) return s;
+
+      const nextCard = s.state.drawPile[0];
+      animations.flipCard(nextCard, () => {
+        setScreen((s2) => {
+          if (s2.type !== 'solo') return s2;
+          const newState = drawCard(s2.state);
+
+          // パニック演出
+          const lastResult = newState.roundHistory[newState.roundHistory.length - 1];
+          if (newState.phase === 'result' && lastResult?.panicked) {
+            animations.playPanic(() => {});
+          }
+
+          // イベントカード演出
+          if (newState.phase === 'event_display' && newState.pendingEvent) {
+            animations.playEventGlow(newState.pendingEvent);
+          }
+
+          return { ...s2, state: newState };
+        });
+      });
+
+      return s;
+    });
+  }, [animations]);
+
+  const handleStop = useCallback(() => {
+    if (animations.anim.busy) return;
+    setScreen((s) => {
+      if (s.type !== 'solo') return s;
+      const profit = s.state.currentRoundProfit;
+      const next = stopDrawing(s.state);
+
+      if (profit > 0) animations.countUpScore();
+      if (profit >= 8) animations.showBigShipment();
+
+      return { ...s, state: next };
+    });
+  }, [animations]);
+
   const handleNextRound = useCallback(() => updateSolo(nextRound), [updateSolo]);
   const handleDismissEvent = useCallback(() => updateSolo(dismissEvent), [updateSolo]);
 
   const handleUseResponseCard = useCallback((cardIndex: number) => {
-    updateSolo((prev) => useResponseCard(prev, cardIndex));
-  }, [updateSolo]);
+    if (animations.anim.busy) return;
+    animations.playCardUse(cardIndex, () => {
+      updateSolo((prev) => useResponseCard(prev, cardIndex));
+    });
+  }, [updateSolo, animations]);
 
   const handleSkipResponseCard = useCallback(() => {
     updateSolo(skipResponseCard);
   }, [updateSolo]);
 
   const handleUseDesignChange = useCallback((cardIndex: number) => {
-    updateSolo((prev) => {
-      const card = prev.responseHand[cardIndex];
-      if (card?.responseType === 'design_change') {
-        return useDesignChange(prev, cardIndex);
-      }
-      return prev;
+    if (animations.anim.busy) return;
+    animations.playCardUse(cardIndex, () => {
+      updateSolo((prev) => {
+        const card = prev.responseHand[cardIndex];
+        if (card?.responseType === 'design_change') {
+          return useDesignChange(prev, cardIndex);
+        }
+        return prev;
+      });
     });
-  }, [updateSolo]);
+  }, [updateSolo, animations]);
 
   const handleSelectSamplingCard = useCallback((index: number) => {
     updateSolo((prev) => selectSamplingCard(prev, index));
   }, [updateSolo]);
 
   const handleRestart = useCallback(() => {
+    animations.reset();
     setScreen({ type: 'title' });
-  }, []);
+  }, [animations]);
 
   // ===== マルチプレイヤー ハンドラ =====
   const handleMultiplayer = useCallback((mode: 'create_room' | 'join_room') => {
@@ -85,8 +157,9 @@ function App() {
   }, [screen]);
 
   const handleBackToTitle = useCallback(() => {
+    animations.reset();
     setScreen({ type: 'title' });
-  }, []);
+  }, [animations]);
 
   // ===== レンダリング =====
   switch (screen.type) {
@@ -100,6 +173,7 @@ function App() {
       return (
         <GameBoard
           state={screen.state}
+          anim={animations.anim}
           onDraw={handleDraw}
           onStop={handleStop}
           onNextRound={handleNextRound}

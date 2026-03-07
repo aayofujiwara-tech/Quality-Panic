@@ -1,4 +1,5 @@
 import type { GameState } from '../game/types';
+import type { AnimationState } from '../game/animations';
 import { getDefectRate, canStop } from '../game/gameEngine';
 import { MAX_CONTAMINATION_PER_ROUND } from '../game/constants';
 import { StatusBar } from './StatusBar';
@@ -14,6 +15,7 @@ import { SamplingModal } from './SamplingModal';
 
 type Props = {
   state: GameState;
+  anim: AnimationState;
   onDraw: () => void;
   onStop: () => void;
   onNextRound: () => void;
@@ -26,14 +28,13 @@ type Props = {
 };
 
 export function GameBoard({
-  state, onDraw, onStop, onNextRound, onPrepare,
+  state, anim, onDraw, onStop, onNextRound, onPrepare,
   onUseResponseCard, onSkipResponseCard, onUseDesignChange, onDismissEvent,
   onSelectSamplingCard,
 }: Props) {
   const defectRate = getDefectRate(state.drawPile);
   const isShipping = state.phase === 'shipping' || state.phase === 'defect_response' || state.phase === 'event_display';
 
-  // 次ラウンド汚染予測（出荷中は現在の利益から予測）
   const nextContamination = (() => {
     if (state.round >= state.maxRounds) return undefined;
     if (isShipping) {
@@ -48,16 +49,48 @@ export function GameBoard({
   })();
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className={`flex flex-col min-h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
+      {/* パニックフラッシュオーバーレイ */}
+      {anim.panicking && (
+        <div className="fixed inset-0 z-40 pointer-events-none panic-overlay" />
+      )}
+
+      {/* イベントフラッシュオーバーレイ */}
+      {anim.eventFlash && (
+        <div className={`fixed inset-0 z-40 pointer-events-none ${
+          anim.eventFlash === 'bad' ? 'event-flash-bad' : 'event-flash-good'
+        }`} />
+      )}
+
       <StatusBar
         round={state.round}
         maxRounds={state.maxRounds}
         score={state.score}
         targetScore={state.targetScore}
         difficulty={state.difficulty}
+        scoreCounting={anim.scoreCounting}
+        waterInspectionActive={state.waterInspectionActive}
       />
 
-      <div className="flex-1 p-3 sm:p-6">
+      <div className="flex-1 p-3 sm:p-6 relative">
+        {/* 汚染投入テキスト */}
+        {anim.contaminationText && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
+            <div className="contamination-text text-lg sm:text-xl font-bold text-red-400 bg-red-900/60 px-4 py-2 rounded-lg border border-red-700">
+              ☣️ {anim.contaminationText}
+            </div>
+          </div>
+        )}
+
+        {/* 大量出荷テキスト */}
+        {anim.bigShipment && (
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30">
+            <div className="big-shipment-text text-2xl sm:text-3xl font-bold text-amber-300">
+              大量出荷！
+            </div>
+          </div>
+        )}
+
         {state.phase === 'prepare' && (
           <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
             <div className="text-2xl font-bold text-amber-400">
@@ -84,9 +117,15 @@ export function GameBoard({
 
         {isShipping && (
           <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
-            <DrawPile remaining={state.drawPile.length} defectRate={defectRate} drawPile={state.drawPile} nextContamination={nextContamination} />
+            <DrawPile
+              remaining={state.drawPile.length}
+              defectRate={defectRate}
+              drawPile={state.drawPile}
+              nextContamination={nextContamination}
+              flipping={anim.flipping}
+              flippingCard={anim.flippingCard}
+            />
             <div className="flex-1 flex flex-col">
-              {/* アクティブな効果の表示 */}
               <ActiveEffects state={state} />
               <DrawnCards
                 cards={state.drawnCardsThisRound}
@@ -97,8 +136,8 @@ export function GameBoard({
               <ActionButtons
                 onDraw={onDraw}
                 onStop={onStop}
-                canDraw={state.drawPile.length > 0 && state.phase === 'shipping'}
-                canStop={canStop(state) && state.phase === 'shipping'}
+                canDraw={state.drawPile.length > 0 && state.phase === 'shipping' && !anim.busy}
+                canStop={canStop(state) && state.phase === 'shipping' && !anim.busy}
                 cardsDrawn={state.drawnCardsThisRound.length}
               />
             </div>
@@ -120,39 +159,40 @@ export function GameBoard({
             onNext={onNextRound}
             drawnCards={state.drawnCardsThisRound}
             defectPointsLog={state.defectPointsLog}
+            panicking={anim.panicking}
           />
         )}
       </div>
 
-      {/* 対応カード手札（出荷フェーズ中に表示） */}
       {isShipping && (
         <ResponseHand
           hand={state.responseHand}
           onUseCard={onUseDesignChange}
-          disabled={state.phase !== 'shipping'}
+          disabled={state.phase !== 'shipping' || anim.busy}
+          cardUsingIndex={anim.cardUsingIndex}
         />
       )}
 
-      {/* 不具合対応モーダル */}
       {state.phase === 'defect_response' && state.pendingDefect && (
         <DefectResponse
           defect={state.pendingDefect}
           hand={state.responseHand}
           onUseCard={onUseResponseCard}
           onSkip={onSkipResponseCard}
+          disabled={anim.busy}
+          cardUsingIndex={anim.cardUsingIndex}
         />
       )}
 
-      {/* イベント発動モーダル */}
       {state.phase === 'event_display' && state.pendingEvent && (
         <EventModal
           event={state.pendingEvent}
           state={state}
           onDismiss={onDismissEvent}
+          glowing={anim.eventGlowing}
         />
       )}
 
-      {/* 抜き取り検査モーダル */}
       {state.phase === 'sampling' && state.samplingCards.length > 0 && (
         <SamplingModal
           cards={state.samplingCards}
@@ -166,7 +206,6 @@ export function GameBoard({
   );
 }
 
-// アクティブな効果を表示するサブコンポーネント
 function ActiveEffects({ state }: { state: GameState }) {
   const effects: { icon: string; text: string; color: string }[] = [];
 

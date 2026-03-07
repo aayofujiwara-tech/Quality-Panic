@@ -9,6 +9,7 @@ import { writeGameState, writePlayerResponseHand, writePlayerScore } from '../fi
 import { listenRoom } from '../firebase/roomManager';
 import { MAX_CONTAMINATION_PER_ROUND } from '../game/constants';
 import { saveHighScore } from '../game/highscore';
+import { useAnimations } from '../game/animations';
 import { DrawPile } from './DrawPile';
 import { DrawnCards } from './DrawnCards';
 import { ActionButtons } from './ActionButtons';
@@ -106,6 +107,9 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   const [myResponseHand, setMyResponseHand] = useState<ResponseCard[]>([]);
   const [myScore, setMyScore] = useState(0);
 
+  const animations = useAnimations();
+  const { anim } = animations;
+
   const roomRef = useRef(room);
   roomRef.current = room;
 
@@ -196,35 +200,53 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   }, [gameState, isMyTurn, roomCode]);
 
   const handleDraw = useCallback(async () => {
-    if (!gameState || !isMyTurn || localPhase !== 'shipping') return;
+    if (!gameState || !isMyTurn || localPhase !== 'shipping' || anim.busy) return;
 
-    const result = multiDrawCard(gameState, cardMaster, myResponseHand);
-    if (!result) return;
+    // 次のカードを先読みしてフリップ演出
+    const drawPile = gameState.drawPile ?? [];
+    if (drawPile.length === 0) return;
+    const nextCardId = drawPile[0];
+    const nextCard = cardMaster[nextCardId];
 
-    setLastDrawnCard(result.drawnCard);
-    await writeGameState(roomCode, result.gameState);
+    const applyDraw = async () => {
+      const gs = roomRef.current.gameState;
+      if (!gs) return;
+      const result = multiDrawCard(gs, cardMaster, myResponseHand);
+      if (!result) return;
 
-    if (result.panicked) {
-      setLastDrawnCards(resolveCards(result.gameState.turnState?.drawnCards ?? [], cardMaster));
-      setLastDefectPointsLog(result.gameState.turnState?.defectPointsLog ?? []);
-      const panicState = multiHandlePanic(result.gameState, uid);
-      await writeGameState(roomCode, panicState);
-      setTurnPanicked(true);
-      setTurnProfit(0);
-      setLocalPhase('result');
-    } else if (result.needsDefectResponse) {
-      setPendingDefect(result.drawnCard as DefectCard);
-      setLocalPhase('defect_response');
-    } else if (result.eventTriggered) {
-      setPendingEvent(result.eventTriggered);
-      setLocalPhase('event_display');
+      setLastDrawnCard(result.drawnCard);
+      await writeGameState(roomCode, result.gameState);
+
+      if (result.panicked) {
+        setLastDrawnCards(resolveCards(result.gameState.turnState?.drawnCards ?? [], cardMaster));
+        setLastDefectPointsLog(result.gameState.turnState?.defectPointsLog ?? []);
+        const panicState = multiHandlePanic(result.gameState, uid);
+        await writeGameState(roomCode, panicState);
+        setTurnPanicked(true);
+        setTurnProfit(0);
+        animations.playPanic(() => {});
+        setLocalPhase('result');
+      } else if (result.needsDefectResponse) {
+        setPendingDefect(result.drawnCard as DefectCard);
+        setLocalPhase('defect_response');
+      } else if (result.eventTriggered) {
+        setPendingEvent(result.eventTriggered);
+        animations.playEventGlow(result.eventTriggered);
+        setLocalPhase('event_display');
+      } else {
+        setTurnProfit(result.gameState.turnState?.currentProfit ?? 0);
+      }
+    };
+
+    if (nextCard) {
+      animations.flipCard(nextCard, () => { applyDraw(); });
     } else {
-      setTurnProfit(result.gameState.turnState?.currentProfit ?? 0);
+      await applyDraw();
     }
-  }, [gameState, isMyTurn, localPhase, roomCode, uid, cardMaster, myResponseHand]);
+  }, [gameState, isMyTurn, localPhase, roomCode, uid, cardMaster, myResponseHand, anim.busy, animations]);
 
   const handleStop = useCallback(async () => {
-    if (!gameState || !isMyTurn) return;
+    if (!gameState || !isMyTurn || anim.busy) return;
 
     const { gameState: newState, newResponseHand, profit } =
       multiStopDrawing(gameState, uid, cardMaster, myResponseHand);
@@ -237,6 +259,9 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     setLastDrawnCards(drawnCardsThisTurn);
     setLastDefectPointsLog(gameState?.turnState?.defectPointsLog ?? []);
 
+    if (profit > 0) animations.countUpScore();
+    if (profit >= 8) animations.showBigShipment();
+
     await Promise.all([
       writeGameState(roomCode, newState),
       writePlayerResponseHand(roomCode, uid, newResponseHand),
@@ -244,25 +269,29 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
     ]);
 
     setLocalPhase('result');
-  }, [gameState, isMyTurn, roomCode, uid, cardMaster, myResponseHand, myScore, drawnCardsThisTurn]);
+  }, [gameState, isMyTurn, roomCode, uid, cardMaster, myResponseHand, myScore, drawnCardsThisTurn, anim.busy, animations]);
 
   const handleUseResponseCard = useCallback(async (cardIndex: number) => {
-    if (!gameState || !pendingDefect) return;
+    if (!gameState || !pendingDefect || anim.busy) return;
 
-    const { gameState: newState, newResponseHand } =
-      multiUseResponseCard(gameState, cardMaster, myResponseHand, cardIndex, pendingDefect);
+    animations.playCardUse(cardIndex, async () => {
+      const gs = roomRef.current.gameState;
+      if (!gs) return;
+      const { gameState: newState, newResponseHand } =
+        multiUseResponseCard(gs, cardMaster, myResponseHand, cardIndex, pendingDefect);
 
-    setMyResponseHand(newResponseHand);
-    setPendingDefect(null);
+      setMyResponseHand(newResponseHand);
+      setPendingDefect(null);
 
-    await Promise.all([
-      writeGameState(roomCode, newState),
-      writePlayerResponseHand(roomCode, uid, newResponseHand),
-    ]);
+      await Promise.all([
+        writeGameState(roomCode, newState),
+        writePlayerResponseHand(roomCode, uid, newResponseHand),
+      ]);
 
-    setLocalPhase('shipping');
-    setTurnProfit(newState.turnState?.currentProfit ?? 0);
-  }, [gameState, pendingDefect, roomCode, uid, cardMaster, myResponseHand]);
+      setLocalPhase('shipping');
+      setTurnProfit(newState.turnState?.currentProfit ?? 0);
+    });
+  }, [gameState, pendingDefect, roomCode, uid, cardMaster, myResponseHand, anim.busy, animations]);
 
   const handleSkipDefect = useCallback(async () => {
     if (!gameState || !pendingDefect) return;
@@ -292,17 +321,21 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   }, [gameState]);
 
   const handleUseDesignChange = useCallback(async (cardIndex: number) => {
-    if (!gameState) return;
+    if (!gameState || anim.busy) return;
 
-    const { gameState: newState, newResponseHand } =
-      multiUseDesignChange(gameState, myResponseHand, cardIndex);
+    animations.playCardUse(cardIndex, async () => {
+      const gs = roomRef.current.gameState;
+      if (!gs) return;
+      const { gameState: newState, newResponseHand } =
+        multiUseDesignChange(gs, myResponseHand, cardIndex);
 
-    setMyResponseHand(newResponseHand);
-    await Promise.all([
-      writeGameState(roomCode, newState),
-      writePlayerResponseHand(roomCode, uid, newResponseHand),
-    ]);
-  }, [gameState, roomCode, uid, myResponseHand]);
+      setMyResponseHand(newResponseHand);
+      await Promise.all([
+        writeGameState(roomCode, newState),
+        writePlayerResponseHand(roomCode, uid, newResponseHand),
+      ]);
+    });
+  }, [gameState, roomCode, uid, myResponseHand, anim.busy, animations]);
 
   const handleSelectSamplingCard = useCallback(async (index: number) => {
     if (!gameState) return;
@@ -374,9 +407,20 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   }
 
   return (
-    <div className="flex flex-col min-h-screen">
+    <div className={`flex flex-col min-h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
+      {/* パニックフラッシュオーバーレイ */}
+      {anim.panicking && (
+        <div className="fixed inset-0 z-40 pointer-events-none panic-overlay" />
+      )}
+      {/* イベントフラッシュオーバーレイ */}
+      {anim.eventFlash && (
+        <div className={`fixed inset-0 z-40 pointer-events-none ${
+          anim.eventFlash === 'bad' ? 'event-flash-bad' : 'event-flash-good'
+        }`} />
+      )}
+
       {/* ステータスバー（マルチ専用：両者スコア＋手番表示） */}
-      <div className="flex items-center justify-between bg-gray-800 px-3 sm:px-6 py-2 sm:py-3 border-b border-gray-700">
+      <div className={`flex items-center justify-between bg-gray-800 px-3 sm:px-6 py-2 sm:py-3 border-b border-gray-700 ${gameState?.turnState?.waterInspectionActive ? 'shield-effect' : ''}`}>
         <h1 className="text-base sm:text-xl font-bold text-amber-400 shrink-0">品証パニック</h1>
         <div className="flex gap-2 sm:gap-6 text-xs sm:text-sm flex-wrap justify-end">
           <span className="text-gray-300">
@@ -390,7 +434,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
               <span key={pid} className={isMe ? 'text-blue-300' : 'text-gray-300'}>
                 <span className="hidden sm:inline">{getPlayerName(pid)}{isMe ? '(自分)' : ''}: </span>
                 <span className="sm:hidden">{isMe ? '自分' : '相手'}: </span>
-                <span className="font-bold text-sm sm:text-base text-white">{score}pt</span>
+                <span className={`font-bold text-sm sm:text-base text-white ${isMe && anim.scoreCounting ? 'score-count-up' : ''}`}>{score}pt</span>
                 {isCurrent && (
                   <span className="ml-1 text-xs text-amber-400 border border-amber-400/30 px-1 rounded">手番</span>
                 )}
@@ -400,7 +444,24 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 p-3 sm:p-6">
+      <div className="flex-1 p-3 sm:p-6 relative">
+        {/* 汚染投入テキスト */}
+        {anim.contaminationText && (
+          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
+            <div className="contamination-text text-lg sm:text-xl font-bold text-red-400 bg-red-900/60 px-4 py-2 rounded-lg border border-red-700">
+              ☣️ {anim.contaminationText}
+            </div>
+          </div>
+        )}
+        {/* 大量出荷テキスト */}
+        {anim.bigShipment && (
+          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30">
+            <div className="big-shipment-text text-2xl sm:text-3xl font-bold text-amber-300">
+              大量出荷！
+            </div>
+          </div>
+        )}
+
         {/* 相手のターン待ち */}
         {localPhase === 'waiting_turn' && (
           <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
@@ -419,8 +480,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
               ラウンド {gameState.round} 準備中
             </div>
             {gameState.lastContamination && gameState.lastContamination.round === gameState.round && (
-              <div className="text-sm text-red-400">
-                汚染カード {gameState.lastContamination.count}枚 が山札に投入されました
+              <div className="text-sm text-red-400 contamination-text">
+                ☣️ 汚染カード +{gameState.lastContamination.count}枚 が山札に投入されました
               </div>
             )}
             {(gameState.samplingNextRound ?? 0) > 0 && (
@@ -445,6 +506,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
               defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
               drawPile={drawPileCards}
               nextContamination={nextContamination}
+              flipping={anim.flipping}
+              flippingCard={anim.flippingCard}
             />
             <div className="flex-1 flex flex-col">
               <ActiveEffectsMulti turnState={gameState.turnState} />
@@ -457,8 +520,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
               <ActionButtons
                 onDraw={handleDraw}
                 onStop={handleStop}
-                canDraw={(gameState.drawPile ?? []).length > 0 && localPhase === 'shipping'}
-                canStop={multiCanStop(gameState.turnState) && localPhase === 'shipping'}
+                canDraw={(gameState.drawPile ?? []).length > 0 && localPhase === 'shipping' && !anim.busy}
+                canStop={multiCanStop(gameState.turnState) && localPhase === 'shipping' && !anim.busy}
                 cardsDrawn={drawnCardsThisTurn.length}
               />
             </div>
@@ -470,7 +533,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
           <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
             {turnPanicked ? (
               <>
-                <div className="text-3xl sm:text-4xl font-bold text-red-400">パニック発生！</div>
+                <div className={`text-3xl sm:text-4xl font-bold text-red-400 ${anim.panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
                 <div className="text-sm sm:text-base text-gray-400">このラウンドの利益は全て失われました...</div>
                 <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
                 <div className="text-xs sm:text-sm text-gray-500 mt-1">対応カードは入手できません</div>
@@ -544,7 +607,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         <ResponseHand
           hand={myResponseHand}
           onUseCard={handleUseDesignChange}
-          disabled={localPhase !== 'shipping'}
+          disabled={localPhase !== 'shipping' || anim.busy}
+          cardUsingIndex={anim.cardUsingIndex}
         />
       )}
 
@@ -555,6 +619,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
           hand={myResponseHand}
           onUseCard={handleUseResponseCard}
           onSkip={handleSkipDefect}
+          disabled={anim.busy}
+          cardUsingIndex={anim.cardUsingIndex}
         />
       )}
 
@@ -564,6 +630,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
           event={pendingEvent}
           turnState={gameState.turnState}
           onDismiss={handleDismissEvent}
+          glowing={anim.eventGlowing}
         />
       )}
 
@@ -585,17 +652,19 @@ function MultiEventModal({
   event,
   turnState,
   onDismiss,
+  glowing,
 }: {
   event: EventCard;
   turnState: MultiplayerGameState['turnState'];
   onDismiss: () => void;
+  glowing?: boolean;
 }) {
   const icon = eventIcons[event.eventType] ?? '⚡';
   const colorClass = eventColors[event.eventType] ?? 'border-purple-500 bg-purple-900/40';
 
   return (
     <div className="fixed inset-0 bg-black/60 flex items-end sm:items-center justify-center z-50">
-      <div className={`border-2 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-md w-full sm:mx-4 shadow-2xl ${colorClass}`}>
+      <div className={`border-2 rounded-t-xl sm:rounded-xl p-4 sm:p-6 max-w-md w-full sm:mx-4 shadow-2xl ${colorClass} ${glowing ? 'event-glow' : ''}`}>
         <div className="text-center">
           <div className="text-4xl sm:text-5xl mb-2 sm:mb-3">{icon}</div>
           <div className="text-lg sm:text-xl font-bold text-white mb-2">{event.name}</div>

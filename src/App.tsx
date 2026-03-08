@@ -68,15 +68,32 @@ function App() {
           if (s2.type !== 'solo') return s2;
           const newState = drawCard(s2.state);
 
-          // パニック演出
           const lastResult = newState.roundHistory[newState.roundHistory.length - 1];
-          if (newState.phase === 'result' && lastResult?.panicked) {
-            animations.playPanic(() => {});
-          }
+          const isPanic = newState.phase === 'result' && lastResult?.panicked;
+          const isEvent = newState.phase === 'event_display' && newState.pendingEvent;
+          const isDefect = nextCard.type === 'defect';
 
-          // イベントカード演出
-          if (newState.phase === 'event_display' && newState.pendingEvent) {
-            animations.playEventGlow(newState.pendingEvent);
+          if (isPanic) {
+            // パニック: 2秒の「あっ…」ディレイ → パニック演出
+            animations.delay(2000, () => {
+              animations.playPanic(() => {});
+            });
+          } else if (isEvent) {
+            // イベント: 1.0秒後にモーダル操作可能化＋グロー演出
+            animations.delay(1000, () => {
+              animations.playEventGlow(newState.pendingEvent!);
+              animations.releaseBusy();
+            });
+          } else if (isDefect) {
+            // 不具合（パニックなし）: 1.5秒ディレイ
+            animations.delay(1500, () => {
+              animations.releaseBusy();
+            });
+          } else {
+            // 製品: 1.0秒ディレイ
+            animations.delay(1000, () => {
+              animations.releaseBusy();
+            });
           }
 
           return { ...s2, state: newState };

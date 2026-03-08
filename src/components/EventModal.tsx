@@ -5,6 +5,7 @@ type Props = {
   state: GameState;
   onDismiss: () => void;
   glowing?: boolean;
+  disabled?: boolean;
 };
 
 const eventIcons: Record<string, string> = {
@@ -57,7 +58,7 @@ function getEffectDescription(event: EventCard, state: GameState): string {
   }
 }
 
-export function EventModal({ event, state, onDismiss, glowing }: Props) {
+export function EventModal({ event, state, onDismiss, glowing, disabled }: Props) {
   const icon = eventIcons[event.eventType] ?? '⚡';
   const colorClass = eventColors[event.eventType] ?? 'border-purple-500 bg-purple-900/40';
 
@@ -74,8 +75,12 @@ export function EventModal({ event, state, onDismiss, glowing }: Props) {
 
         <button
           onClick={onDismiss}
-          className="w-full px-4 py-3 min-h-[44px] bg-purple-700 hover:bg-purple-600 border border-purple-500
-            rounded-lg text-white font-bold transition-all cursor-pointer"
+          disabled={disabled}
+          className={`w-full px-4 py-3 min-h-[44px] border rounded-lg font-bold transition-all ${
+            disabled
+              ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+              : 'bg-purple-700 hover:bg-purple-600 border-purple-500 text-white cursor-pointer'
+          }`}
         >
           了解
         </button>

@@ -190,6 +190,7 @@ export function GameBoard({
           state={state}
           onDismiss={onDismissEvent}
           glowing={anim.eventGlowing}
+          disabled={anim.busy}
         />
       )}
 

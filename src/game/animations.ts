@@ -54,13 +54,23 @@ export function useAnimations() {
     return id;
   }, []);
 
-  /** カードフリップアニメーション。完了後にcallbackを呼ぶ */
+  /** カードフリップアニメーション。完了後にcallbackを呼ぶ（busyは解除しない） */
   const flipCard = useCallback((card: Card, callback: () => void) => {
     setAnim(a => ({ ...a, flipping: true, flippingCard: card, busy: true }));
     schedule(() => {
-      setAnim(a => ({ ...a, flipping: false, flippingCard: null, busy: false }));
-      callback();
+      setAnim(a => ({ ...a, flipping: false, flippingCard: null }));
+      callback(); // busy stays true — caller must call releaseBusy or delay
     }, 400);
+  }, [schedule]);
+
+  /** busy状態を解除する */
+  const releaseBusy = useCallback(() => {
+    setAnim(a => ({ ...a, busy: false }));
+  }, []);
+
+  /** 指定ミリ秒後にコールバックを実行する（タイマー管理付き） */
+  const delay = useCallback((ms: number, fn: () => void) => {
+    schedule(fn, ms);
   }, [schedule]);
 
   /** パニック演出。完了後にcallbackを呼ぶ */
@@ -125,5 +135,5 @@ export function useAnimations() {
     setAnim(INITIAL);
   }, [clearTimeouts]);
 
-  return { anim, flipCard, playPanic, showContamination, countUpScore, showBigShipment, playCardUse, playEventGlow, reset };
+  return { anim, flipCard, releaseBusy, delay, playPanic, showContamination, countUpScore, showBigShipment, playCardUse, playEventGlow, reset };
 }

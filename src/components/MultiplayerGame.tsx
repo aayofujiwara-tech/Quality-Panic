@@ -225,17 +225,32 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         await writeGameState(roomCode, panicState);
         setTurnPanicked(true);
         setTurnProfit(0);
-        animations.playPanic(() => {});
-        setLocalPhase('result');
+        // パニック: 2秒の「あっ…」ディレイ → パニック演出
+        animations.delay(2000, () => {
+          animations.playPanic(() => {});
+          setLocalPhase('result');
+        });
       } else if (result.needsDefectResponse) {
         setPendingDefect(result.drawnCard as DefectCard);
+        // 不具合: 1.5秒ディレイ後にモーダル操作可能化
+        animations.delay(1500, () => {
+          animations.releaseBusy();
+        });
         setLocalPhase('defect_response');
       } else if (result.eventTriggered) {
         setPendingEvent(result.eventTriggered);
-        animations.playEventGlow(result.eventTriggered);
+        // イベント: 1.0秒後にグロー演出＋操作可能化
+        animations.delay(1000, () => {
+          animations.playEventGlow(result.eventTriggered!);
+          animations.releaseBusy();
+        });
         setLocalPhase('event_display');
       } else {
         setTurnProfit(result.gameState.turnState?.currentProfit ?? 0);
+        // 製品: 1.0秒ディレイ
+        animations.delay(1000, () => {
+          animations.releaseBusy();
+        });
       }
     };
 
@@ -631,6 +646,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
           turnState={gameState.turnState}
           onDismiss={handleDismissEvent}
           glowing={anim.eventGlowing}
+          disabled={anim.busy}
         />
       )}
 
@@ -653,11 +669,13 @@ function MultiEventModal({
   turnState,
   onDismiss,
   glowing,
+  disabled,
 }: {
   event: EventCard;
   turnState: MultiplayerGameState['turnState'];
   onDismiss: () => void;
   glowing?: boolean;
+  disabled?: boolean;
 }) {
   const icon = eventIcons[event.eventType] ?? '⚡';
   const colorClass = eventColors[event.eventType] ?? 'border-purple-500 bg-purple-900/40';
@@ -675,8 +693,12 @@ function MultiEventModal({
 
         <button
           onClick={onDismiss}
-          className="w-full px-4 py-3 min-h-[44px] bg-purple-700 hover:bg-purple-600 border border-purple-500
-            rounded-lg text-white font-bold transition-all cursor-pointer"
+          disabled={disabled}
+          className={`w-full px-4 py-3 min-h-[44px] border rounded-lg font-bold transition-all ${
+            disabled
+              ? 'bg-gray-700 border-gray-600 text-gray-500 cursor-not-allowed'
+              : 'bg-purple-700 hover:bg-purple-600 border-purple-500 text-white cursor-pointer'
+          }`}
         >
           了解
         </button>

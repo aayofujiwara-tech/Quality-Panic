@@ -54,12 +54,12 @@ export function useAnimations() {
     return id;
   }, []);
 
-  /** カードフリップアニメーション。完了後にcallbackを呼ぶ（busyは解除しない） */
+  /** カードフリップアニメーション。完了後にcallbackを呼びbusyを解除する */
   const flipCard = useCallback((card: Card, callback: () => void) => {
     setAnim(a => ({ ...a, flipping: true, flippingCard: card, busy: true }));
     schedule(() => {
-      setAnim(a => ({ ...a, flipping: false, flippingCard: null }));
-      callback(); // busy stays true — caller must call releaseBusy or delay
+      setAnim(a => ({ ...a, flipping: false, flippingCard: null, busy: false }));
+      callback();
     }, 400);
   }, [schedule]);
 

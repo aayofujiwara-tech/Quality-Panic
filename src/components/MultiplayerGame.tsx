@@ -232,25 +232,13 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         });
       } else if (result.needsDefectResponse) {
         setPendingDefect(result.drawnCard as DefectCard);
-        // 不具合: 1.5秒ディレイ後にモーダル操作可能化
-        animations.delay(1500, () => {
-          animations.releaseBusy();
-        });
         setLocalPhase('defect_response');
       } else if (result.eventTriggered) {
         setPendingEvent(result.eventTriggered);
-        // イベント: 1.0秒後にグロー演出＋操作可能化
-        animations.delay(1000, () => {
-          animations.playEventGlow(result.eventTriggered!);
-          animations.releaseBusy();
-        });
+        animations.playEventGlow(result.eventTriggered);
         setLocalPhase('event_display');
       } else {
         setTurnProfit(result.gameState.turnState?.currentProfit ?? 0);
-        // 製品: 1.0秒ディレイ
-        animations.delay(1000, () => {
-          animations.releaseBusy();
-        });
       }
     };
 

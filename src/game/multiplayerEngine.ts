@@ -227,6 +227,7 @@ export function multiDrawCard(
       const dc = card as DefectCard;
       if (turn.waterInspectionActive) {
         turn.waterInspectionActive = false;
+        turn.snsFireActive = false; // 不具合が無効化されてもSNS炎上は消費
         turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
           points: turn.currentDefectPoints,
           reason: `🛡️水際検査 → ${dc.name}無効`,
@@ -353,6 +354,9 @@ export function multiUseResponseCard(
     reason: `${card.name} → 不具合無効`,
     changeType: 'nullified' as const,
   }];
+
+  // 不具合が無効化されてもSNS炎上は消費
+  turn.snsFireActive = false;
 
   let newState = { ...gameState };
 

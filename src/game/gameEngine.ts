@@ -214,6 +214,7 @@ function handleDefectCard(state: GameState, card: DefectCard): GameState {
     return {
       ...state,
       waterInspectionActive: false,
+      snsFireActive: false, // 不具合が無効化されてもSNS炎上は消費
       defectPointsLog: [...state.defectPointsLog, logEntry],
     };
   }
@@ -286,6 +287,7 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
     responseHand: newHand,
     pendingDefect: null,
     phase: 'shipping',
+    snsFireActive: false, // 不具合が無効化されてもSNS炎上は消費
     defectPointsLog: [...state.defectPointsLog, logEntry],
   };
 

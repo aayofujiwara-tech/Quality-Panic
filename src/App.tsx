@@ -74,24 +74,24 @@ function App() {
           const isDefect = nextCard.type === 'defect';
 
           if (isPanic) {
-            // パニック: 1秒の「あっ…」ディレイ → パニック演出
-            animations.delay(1000, () => {
+            // パニック: 2秒の「あっ…」ディレイ → パニック演出
+            animations.delay(2000, () => {
               animations.playPanic(() => {});
             });
           } else if (isEvent) {
-            // イベント: 0.5秒後にモーダル操作可能化＋グロー演出
-            animations.delay(500, () => {
+            // イベント: 1.0秒後にモーダル操作可能化＋グロー演出
+            animations.delay(1000, () => {
               animations.playEventGlow(newState.pendingEvent!);
               animations.releaseBusy();
             });
           } else if (isDefect) {
-            // 不具合（パニックなし）: 0.8秒ディレイ
-            animations.delay(800, () => {
+            // 不具合（パニックなし）: 1.5秒ディレイ
+            animations.delay(1500, () => {
               animations.releaseBusy();
             });
           } else {
-            // 製品: 0.5秒ディレイ
-            animations.delay(500, () => {
+            // 製品: 1.0秒ディレイ
+            animations.delay(1000, () => {
               animations.releaseBusy();
             });
           }

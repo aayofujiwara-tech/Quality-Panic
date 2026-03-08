@@ -225,30 +225,30 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         await writeGameState(roomCode, panicState);
         setTurnPanicked(true);
         setTurnProfit(0);
-        // パニック: 1秒の「あっ…」ディレイ → パニック演出
-        animations.delay(1000, () => {
+        // パニック: 2秒の「あっ…」ディレイ → パニック演出
+        animations.delay(2000, () => {
           animations.playPanic(() => {});
           setLocalPhase('result');
         });
       } else if (result.needsDefectResponse) {
         setPendingDefect(result.drawnCard as DefectCard);
-        // 不具合: 0.8秒ディレイ後にモーダル操作可能化
-        animations.delay(800, () => {
+        // 不具合: 1.5秒ディレイ後にモーダル操作可能化
+        animations.delay(1500, () => {
           animations.releaseBusy();
         });
         setLocalPhase('defect_response');
       } else if (result.eventTriggered) {
         setPendingEvent(result.eventTriggered);
-        // イベント: 0.5秒後にグロー演出＋操作可能化
-        animations.delay(500, () => {
+        // イベント: 1.0秒後にグロー演出＋操作可能化
+        animations.delay(1000, () => {
           animations.playEventGlow(result.eventTriggered!);
           animations.releaseBusy();
         });
         setLocalPhase('event_display');
       } else {
         setTurnProfit(result.gameState.turnState?.currentProfit ?? 0);
-        // 製品: 0.5秒ディレイ
-        animations.delay(500, () => {
+        // 製品: 1.0秒ディレイ
+        animations.delay(1000, () => {
           animations.releaseBusy();
         });
       }

@@ -40,24 +40,36 @@ function cardLabel(card: Card): string {
   }
 }
 
-export function CardFlipAnimation({ flipping, flippingCard }: Props) {
-  if (!flipping || !flippingCard) return null;
+// カードサイズ定数（Tailwindクラス）
+// モバイル: w-14 (56px) x h-[72px]
+// sm: w-16 (64px) x h-[88px]
+// md: w-20 (80px) x h-[112px]
+const CARD_SIZE = 'w-14 h-[72px] sm:w-16 sm:h-[88px] md:w-20 md:h-[112px]';
 
+export function CardFlipAnimation({ flipping, flippingCard }: Props) {
   return (
     <div className="flex justify-center my-2">
-      <div className="card-flip-container">
-        <div className="card-flip w-14 h-18 sm:w-16 sm:h-22 md:w-20 md:h-28 relative">
-          {/* 表面 */}
-          <div className={`card-flip-front w-full h-full rounded-lg border-2 flex flex-col items-center justify-center ${cardStyle(flippingCard)}`}>
-            <div className="text-lg sm:text-xl md:text-2xl">{cardIcon(flippingCard)}</div>
-            <div className="text-[8px] sm:text-[10px] md:text-xs font-bold mt-0.5 text-center px-0.5">
-              {cardLabel(flippingCard)}
+      {flipping && flippingCard ? (
+        <div className="card-flip-container">
+          <div className={`card-flip ${CARD_SIZE} relative`}>
+            {/* 表面 */}
+            <div className={`card-flip-front w-full h-full rounded-lg border-2 flex flex-col items-center justify-center ${cardStyle(flippingCard)}`}>
+              <div className="text-lg sm:text-xl md:text-2xl">{cardIcon(flippingCard)}</div>
+              <div className="text-[8px] sm:text-[10px] md:text-xs font-bold mt-0.5 text-center px-0.5">
+                {cardLabel(flippingCard)}
+              </div>
             </div>
+            {/* 裏面 */}
+            <div className="card-flip-back w-full h-full card-back-design" />
           </div>
-          {/* 裏面 */}
-          <div className="card-flip-back w-full h-full card-back-design" />
         </div>
-      </div>
+      ) : (
+        <div className={`${CARD_SIZE} rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center`}>
+          <span className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 text-center leading-tight">
+            次の<br />出荷カード
+          </span>
+        </div>
+      )}
     </div>
   );
 }

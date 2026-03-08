@@ -34,6 +34,7 @@ export function initGame(difficulty: Difficulty): GameState {
     forcedDraws: 0,
     samplingNextRound: 0,
     samplingCards: [],
+    samplingInProgress: false,
     waterInspectionActive: false,
 
     roundHistory: [],
@@ -90,12 +91,14 @@ export function prepareRound(state: GameState): GameState {
     newState.samplingCards = revealed;
     // カウンターをデクリメント（残りは selectSamplingCard で継続判定）
     newState.samplingNextRound = state.samplingNextRound - 1;
+    newState.samplingInProgress = true;
     newState.phase = 'sampling';
     return newState;
   }
 
   newState.samplingNextRound = 0;
   newState.samplingCards = [];
+  newState.samplingInProgress = false;
   newState.phase = 'shipping';
   return newState;
 }
@@ -131,7 +134,7 @@ export function selectSamplingCard(state: GameState, index: number): GameState {
         phase: 'sampling',
       };
     }
-    return { ...s, phase: 'shipping' };
+    return { ...s, samplingInProgress: false, phase: 'shipping' };
   };
 
   // 選択したカードの効果を適用
@@ -424,15 +427,9 @@ export function dismissEvent(state: GameState): GameState {
     pendingEvent: null,
   };
 
-  // 抜き取り検査イベントで加算されたカウンターは次ラウンドに持ち越す。
-  // sampling中に非sampling系イベントを引いた場合は残りセッションを継続する。
-  let effectiveCount = newState.samplingNextRound;
-  if (state.pendingEvent?.eventType === 'sampling_inspection') {
-    // このイベントで加算された+1は次ラウンド用なので除外して判定
-    effectiveCount = Math.max(0, effectiveCount - 1);
-  }
-
-  if (effectiveCount > 0 && newState.drawPile.length >= 3) {
+  // prepareRound開始のサンプリングセッション中にイベントを引いた場合は
+  // 残りのサンプリングを継続する
+  if (newState.samplingInProgress && newState.samplingNextRound > 0 && newState.drawPile.length >= 3) {
     const pile = [...newState.drawPile];
     const revealed = pile.splice(0, 3);
     return {
@@ -444,7 +441,8 @@ export function dismissEvent(state: GameState): GameState {
     };
   }
 
-  return { ...newState, phase: 'shipping' };
+  // それ以外はshippingに戻る（イベントで加算されたカウンターは次ラウンドで消費）
+  return { ...newState, samplingInProgress: false, phase: 'shipping' };
 }
 
 // パニック発生
@@ -564,6 +562,7 @@ export function nextRound(state: GameState): GameState {
     defectPointsLog: [],
     snsFireActive: false,
     forcedDraws: 0,
+    samplingInProgress: false,
     waterInspectionActive: false,
   };
 }

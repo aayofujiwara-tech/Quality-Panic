@@ -84,6 +84,7 @@ export type GameState = {
   forcedDraws: number;
   samplingNextRound: number;
   samplingCards: Card[];
+  samplingInProgress: boolean; // prepareRound開始のサンプリングセッション中
   waterInspectionActive: boolean;
 
   // 履歴

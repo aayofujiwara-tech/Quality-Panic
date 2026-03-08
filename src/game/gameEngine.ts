@@ -237,11 +237,6 @@ function handleDefectCard(state: GameState, card: DefectCard): GameState {
 function applyDefectPoints(state: GameState, card: DefectCard): GameState {
   let points = card.defectPoints;
 
-  // リコール級（黒）は即パニック
-  if (card.severity === 'black') {
-    points = state.panicThreshold;
-  }
-
   // SNS炎上効果: 不具合Ptが2倍
   if (state.snsFireActive) {
     points *= 2;

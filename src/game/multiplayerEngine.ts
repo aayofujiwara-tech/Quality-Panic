@@ -268,10 +268,6 @@ export function multiDrawCard(
 function applyDefectToTurn(turn: TurnState, card: DefectCard): { panicked: boolean } {
   let points = card.defectPoints;
 
-  if (card.severity === 'black') {
-    points = turn.panicThreshold;
-  }
-
   const wasSnsFire = turn.snsFireActive;
   if (turn.snsFireActive) {
     points *= 2;
@@ -293,7 +289,7 @@ function applyDefectToTurn(turn: TurnState, card: DefectCard): { panicked: boole
   return { panicked: false };
 }
 
-function applyEventToTurn(turn: TurnState, card: EventCard, _cardMaster: Record<string, Card>): void {
+function applyEventToTurn(turn: TurnState, card: EventCard, cardMaster: Record<string, Card>): void {
   switch (card.eventType) {
     case 'sns_fire':
       turn.snsFireActive = true;
@@ -304,10 +300,14 @@ function applyEventToTurn(turn: TurnState, card: EventCard, _cardMaster: Record<
     case 'veteran_retire':
       turn.panicThreshold = 2;
       break;
-    case 'kaizen':
-      if (turn.currentDefectPoints > 0) {
-        // 簡易実装: 不具合1pt分を回復
-        turn.currentDefectPoints = Math.max(0, turn.currentDefectPoints - 1);
+    case 'kaizen': {
+      // 直近の不具合カードのdefectPoints分を減算
+      const drawnDefects = (turn.drawnCards ?? [])
+        .map(id => cardMaster[id])
+        .filter((c): c is DefectCard => c?.type === 'defect');
+      if (drawnDefects.length > 0 && turn.currentDefectPoints > 0) {
+        const lastDefect = drawnDefects[drawnDefects.length - 1];
+        turn.currentDefectPoints = Math.max(0, turn.currentDefectPoints - lastDefect.defectPoints);
         turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
           points: turn.currentDefectPoints,
           reason: card.name,
@@ -315,6 +315,7 @@ function applyEventToTurn(turn: TurnState, card: EventCard, _cardMaster: Record<
         }];
       }
       break;
+    }
     case 'iso_audit':
       if (turn.currentDefectPoints === 0) {
         turn.currentProfit += 3;

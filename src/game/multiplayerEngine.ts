@@ -379,6 +379,12 @@ export function multiUseResponseCard(
       break;
   }
 
+  // 使用済み対応カードを捨て山に追加（リサイクル用）
+  // 手札にはIDがないため、新IDを振ってcardMasterに登録する
+  const recycleId = nextCardId();
+  cardMaster[recycleId] = card as unknown as Card;
+  newState.responseDiscard = [...(newState.responseDiscard ?? []), recycleId];
+
   newState.turnState = turn;
   return { gameState: newState, newResponseHand: newHand };
 }

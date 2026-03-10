@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import type { GameState } from '../game/types';
 import type { AnimationState } from '../game/animations';
 import { getDefectRate, canStop } from '../game/gameEngine';
@@ -13,6 +14,7 @@ import { DefectResponse } from './DefectResponse';
 import { EventModal } from './EventModal';
 import { SamplingModal } from './SamplingModal';
 import { CardFlipAnimation } from './CardFlipAnimation';
+import { RuleSidePanel, RuleMobilePanel, buildSoloProps } from './RuleSummaryPanel';
 
 type Props = {
   state: GameState;
@@ -35,6 +37,10 @@ export function GameBoard({
 }: Props) {
   const defectRate = getDefectRate(state.drawPile);
   const isShipping = state.phase === 'shipping' || state.phase === 'defect_response' || state.phase === 'event_display';
+  const ruleProps = useMemo(() => buildSoloProps(state), [
+    state.contaminationStock, state.responseStock, state.responseDiscard,
+    state.snsFireActive, state.waterInspectionActive, state.forcedDraws,
+  ]);
 
   const nextContamination = (() => {
     if (state.round >= state.maxRounds) return undefined;
@@ -73,95 +79,99 @@ export function GameBoard({
         waterInspectionActive={state.waterInspectionActive}
       />
 
-      <div className="flex-1 p-3 sm:p-6 relative">
-        {/* 汚染投入テキスト */}
-        {anim.contaminationText && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
-            <div className="contamination-text text-lg sm:text-xl font-bold text-red-400 bg-red-900/60 px-4 py-2 rounded-lg border border-red-700">
-              ☣️ {anim.contaminationText}
-            </div>
-          </div>
-        )}
-
-        {/* 大量出荷テキスト */}
-        {anim.bigShipment && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30">
-            <div className="big-shipment-text text-2xl sm:text-3xl font-bold text-amber-300">
-              大量出荷！
-            </div>
-          </div>
-        )}
-
-        {state.phase === 'prepare' && (
-          <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
-            <div className="text-2xl font-bold text-amber-400">
-              ラウンド {state.round} 準備中
-            </div>
-            {state.round > 1 && (
-              <div className="text-gray-400 text-sm">
-                汚染カードが山札に投入されます...
+      <div className="flex-1 flex flex-row overflow-hidden">
+        <div className="flex-1 p-3 sm:p-6 relative overflow-y-auto">
+          {/* 汚染投入テキスト */}
+          {anim.contaminationText && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
+              <div className="contamination-text text-lg sm:text-xl font-bold text-red-400 bg-red-900/60 px-4 py-2 rounded-lg border border-red-700">
+                ☣️ {anim.contaminationText}
               </div>
-            )}
-            {state.samplingNextRound > 0 && (
-              <div className="text-sm text-teal-400">
-                🔍 抜き取り検査効果: 3枚から1枚を選べます{state.samplingNextRound >= 2 ? `（${state.samplingNextRound}回）` : ''}
-              </div>
-            )}
-            <button
-              onClick={onPrepare}
-              className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-lg cursor-pointer transition-all"
-            >
-              出荷開始！
-            </button>
-          </div>
-        )}
+            </div>
+          )}
 
-        {isShipping && (
-          <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
-            <DrawPile
-              remaining={state.drawPile.length}
-              defectRate={defectRate}
-              drawPile={state.drawPile}
-              nextContamination={nextContamination}
+          {/* 大量出荷テキスト */}
+          {anim.bigShipment && (
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30">
+              <div className="big-shipment-text text-2xl sm:text-3xl font-bold text-amber-300">
+                大量出荷！
+              </div>
+            </div>
+          )}
+
+          {state.phase === 'prepare' && (
+            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+              <div className="text-2xl font-bold text-amber-400">
+                ラウンド {state.round} 準備中
+              </div>
+              {state.round > 1 && (
+                <div className="text-gray-400 text-sm">
+                  汚染カードが山札に投入されます...
+                </div>
+              )}
+              {state.samplingNextRound > 0 && (
+                <div className="text-sm text-teal-400">
+                  🔍 抜き取り検査効果: 3枚から1枚を選べます{state.samplingNextRound >= 2 ? `（${state.samplingNextRound}回）` : ''}
+                </div>
+              )}
+              <button
+                onClick={onPrepare}
+                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-lg cursor-pointer transition-all"
+              >
+                出荷開始！
+              </button>
+            </div>
+          )}
+
+          {isShipping && (
+            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
+              <DrawPile
+                remaining={state.drawPile.length}
+                defectRate={defectRate}
+                drawPile={state.drawPile}
+                nextContamination={nextContamination}
+              />
+              <div className="flex-1 flex flex-col">
+                <ActiveEffects state={state} />
+                <DrawnCards
+                  cards={state.drawnCardsThisRound}
+                  currentProfit={state.currentRoundProfit}
+                  currentDefectPoints={state.currentDefectPoints}
+                  panicThreshold={state.panicThreshold}
+                />
+                <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
+                <ActionButtons
+                  onDraw={onDraw}
+                  onStop={onStop}
+                  canDraw={state.drawPile.length > 0 && state.phase === 'shipping' && !anim.busy}
+                  canStop={canStop(state) && state.phase === 'shipping' && !anim.busy}
+                  cardsDrawn={state.drawnCardsThisRound.length}
+                />
+              </div>
+            </div>
+          )}
+
+          {state.phase === 'result' && (
+            <RoundResultView
+              result={state.roundHistory[state.roundHistory.length - 1]}
+              totalScore={state.score}
+              targetScore={state.targetScore}
+              responseCardsGained={(() => {
+                const r = state.roundHistory[state.roundHistory.length - 1];
+                if (!r || r.panicked) return 0;
+                if (r.profit <= 2) return 2;
+                if (r.profit <= 5) return 1;
+                return 0;
+              })()}
+              onNext={onNextRound}
+              drawnCards={state.drawnCardsThisRound}
+              defectPointsLog={state.defectPointsLog}
+              panicking={anim.panicking}
             />
-            <div className="flex-1 flex flex-col">
-              <ActiveEffects state={state} />
-              <DrawnCards
-                cards={state.drawnCardsThisRound}
-                currentProfit={state.currentRoundProfit}
-                currentDefectPoints={state.currentDefectPoints}
-                panicThreshold={state.panicThreshold}
-              />
-              <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
-              <ActionButtons
-                onDraw={onDraw}
-                onStop={onStop}
-                canDraw={state.drawPile.length > 0 && state.phase === 'shipping' && !anim.busy}
-                canStop={canStop(state) && state.phase === 'shipping' && !anim.busy}
-                cardsDrawn={state.drawnCardsThisRound.length}
-              />
-            </div>
-          </div>
-        )}
+          )}
+        </div>
 
-        {state.phase === 'result' && (
-          <RoundResultView
-            result={state.roundHistory[state.roundHistory.length - 1]}
-            totalScore={state.score}
-            targetScore={state.targetScore}
-            responseCardsGained={(() => {
-              const r = state.roundHistory[state.roundHistory.length - 1];
-              if (!r || r.panicked) return 0;
-              if (r.profit <= 2) return 2;
-              if (r.profit <= 5) return 1;
-              return 0;
-            })()}
-            onNext={onNextRound}
-            drawnCards={state.drawnCardsThisRound}
-            defectPointsLog={state.defectPointsLog}
-            panicking={anim.panicking}
-          />
-        )}
+        <RuleSidePanel {...ruleProps} />
       </div>
 
       {isShipping && (
@@ -203,6 +213,8 @@ export function GameBoard({
       )}
 
       <RoundHistory history={state.roundHistory} currentRound={state.round} />
+
+      <RuleMobilePanel {...ruleProps} />
     </div>
   );
 }

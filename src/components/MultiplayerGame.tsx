@@ -18,6 +18,7 @@ import { DefectResponse } from './DefectResponse';
 import { SamplingModal } from './SamplingModal';
 import { PanicCardHistory } from './RoundResult';
 import { CardFlipAnimation } from './CardFlipAnimation';
+import { RuleSidePanel, RuleMobilePanel, buildMultiProps } from './RuleSummaryPanel';
 
 type Props = {
   roomCode: string;
@@ -378,6 +379,14 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
   const isShipping = localPhase === 'shipping' || localPhase === 'defect_response' || localPhase === 'event_display';
 
+  // ルールサマリーパネル用データ
+  const ruleProps = useMemo(
+    () => buildMultiProps(gameState, cardMaster),
+    [gameState?.contaminationStock, gameState?.responseStock, gameState?.responseDiscard,
+     gameState?.turnState?.snsFireActive, gameState?.turnState?.waterInspectionActive,
+     gameState?.turnState?.forcedDraws, cardMaster],
+  );
+
   // 次ラウンド汚染予測
   const nextContamination = useMemo(() => {
     if (!gameState || gameState.round >= gameState.maxRounds) return undefined;
@@ -448,161 +457,165 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         </div>
       </div>
 
-      <div className="flex-1 p-3 sm:p-6 relative">
-        {/* 汚染投入テキスト */}
-        {anim.contaminationText && (
-          <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
-            <div className="contamination-text text-lg sm:text-xl font-bold text-red-400 bg-red-900/60 px-4 py-2 rounded-lg border border-red-700">
-              ☣️ {anim.contaminationText}
-            </div>
-          </div>
-        )}
-        {/* 大量出荷テキスト */}
-        {anim.bigShipment && (
-          <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30">
-            <div className="big-shipment-text text-2xl sm:text-3xl font-bold text-amber-300">
-              大量出荷！
-            </div>
-          </div>
-        )}
-
-        {/* 相手のターン待ち */}
-        {localPhase === 'waiting_turn' && (
-          <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
-            <div className="text-xl sm:text-2xl font-bold text-gray-300">
-              {getPlayerName(gameState.currentPlayerUid)} のターン
-            </div>
-            <div className="text-gray-500">相手の出荷を見守っています...</div>
-            <div className="text-gray-600 animate-pulse">待機中</div>
-          </div>
-        )}
-
-        {/* 準備フェーズ */}
-        {localPhase === 'prepare' && isMyTurn && (
-          <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
-            <div className="text-xl sm:text-2xl font-bold text-amber-400">
-              ラウンド {gameState.round} 準備中
-            </div>
-            {gameState.lastContamination && gameState.lastContamination.round === gameState.round && (
-              <div className="text-sm text-red-400 contamination-text">
-                ☣️ 汚染カード +{gameState.lastContamination.count}枚 が山札に投入されました
+      <div className="flex-1 flex flex-row overflow-hidden">
+        <div className="flex-1 p-3 sm:p-6 relative overflow-y-auto">
+          {/* 汚染投入テキスト */}
+          {anim.contaminationText && (
+            <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
+              <div className="contamination-text text-lg sm:text-xl font-bold text-red-400 bg-red-900/60 px-4 py-2 rounded-lg border border-red-700">
+                ☣️ {anim.contaminationText}
               </div>
-            )}
-            {(gameState.samplingNextRound ?? 0) > 0 && (
-              <div className="text-sm text-teal-400">
-                🔍 抜き取り検査効果: 3枚から1枚を選べます{(gameState.samplingNextRound ?? 0) >= 2 ? `（${gameState.samplingNextRound}回）` : ''}
+            </div>
+          )}
+          {/* 大量出荷テキスト */}
+          {anim.bigShipment && (
+            <div className="absolute top-1/3 left-1/2 -translate-x-1/2 z-30">
+              <div className="big-shipment-text text-2xl sm:text-3xl font-bold text-amber-300">
+                大量出荷！
               </div>
-            )}
-            <button
-              onClick={handleStartTurn}
-              className="px-8 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
-            >
-              出荷開始！
-            </button>
-          </div>
-        )}
+            </div>
+          )}
 
-        {/* 出荷中（ソロと同一レイアウト） */}
-        {isShipping && isMyTurn && gameState.turnState && (
-          <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
-            <DrawPile
-              remaining={(gameState.drawPile ?? []).length}
-              defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
-              drawPile={drawPileCards}
-              nextContamination={nextContamination}
-            />
-            <div className="flex-1 flex flex-col">
-              <ActiveEffectsMulti turnState={gameState.turnState} />
-              <DrawnCards
-                cards={drawnCardsThisTurn}
-                currentProfit={gameState.turnState.currentProfit}
-                currentDefectPoints={gameState.turnState.currentDefectPoints}
-                panicThreshold={gameState.turnState.panicThreshold}
+          {/* 相手のターン待ち */}
+          {localPhase === 'waiting_turn' && (
+            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+              <div className="text-xl sm:text-2xl font-bold text-gray-300">
+                {getPlayerName(gameState.currentPlayerUid)} のターン
+              </div>
+              <div className="text-gray-500">相手の出荷を見守っています...</div>
+              <div className="text-gray-600 animate-pulse">待機中</div>
+            </div>
+          )}
+
+          {/* 準備フェーズ */}
+          {localPhase === 'prepare' && isMyTurn && (
+            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+              <div className="text-xl sm:text-2xl font-bold text-amber-400">
+                ラウンド {gameState.round} 準備中
+              </div>
+              {gameState.lastContamination && gameState.lastContamination.round === gameState.round && (
+                <div className="text-sm text-red-400 contamination-text">
+                  ☣️ 汚染カード +{gameState.lastContamination.count}枚 が山札に投入されました
+                </div>
+              )}
+              {(gameState.samplingNextRound ?? 0) > 0 && (
+                <div className="text-sm text-teal-400">
+                  🔍 抜き取り検査効果: 3枚から1枚を選べます{(gameState.samplingNextRound ?? 0) >= 2 ? `（${gameState.samplingNextRound}回）` : ''}
+                </div>
+              )}
+              <button
+                onClick={handleStartTurn}
+                className="px-8 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
+              >
+                出荷開始！
+              </button>
+            </div>
+          )}
+
+          {/* 出荷中（ソロと同一レイアウト） */}
+          {isShipping && isMyTurn && gameState.turnState && (
+            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
+              <DrawPile
+                remaining={(gameState.drawPile ?? []).length}
+                defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
+                drawPile={drawPileCards}
+                nextContamination={nextContamination}
               />
-              <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
-              <ActionButtons
-                onDraw={handleDraw}
-                onStop={handleStop}
-                canDraw={(gameState.drawPile ?? []).length > 0 && localPhase === 'shipping' && !anim.busy}
-                canStop={multiCanStop(gameState.turnState) && localPhase === 'shipping' && !anim.busy}
-                cardsDrawn={drawnCardsThisTurn.length}
-              />
+              <div className="flex-1 flex flex-col">
+                <ActiveEffectsMulti turnState={gameState.turnState} />
+                <DrawnCards
+                  cards={drawnCardsThisTurn}
+                  currentProfit={gameState.turnState.currentProfit}
+                  currentDefectPoints={gameState.turnState.currentDefectPoints}
+                  panicThreshold={gameState.turnState.panicThreshold}
+                />
+                <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
+                <ActionButtons
+                  onDraw={handleDraw}
+                  onStop={handleStop}
+                  canDraw={(gameState.drawPile ?? []).length > 0 && localPhase === 'shipping' && !anim.busy}
+                  canStop={multiCanStop(gameState.turnState) && localPhase === 'shipping' && !anim.busy}
+                  cardsDrawn={drawnCardsThisTurn.length}
+                />
+              </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ターン結果（ソロと同一レイアウト） */}
-        {localPhase === 'result' && (
-          <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
-            {turnPanicked ? (
-              <>
-                <div className={`text-3xl sm:text-4xl font-bold text-red-400 ${anim.panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
-                <div className="text-sm sm:text-base text-gray-400">このラウンドの利益は全て失われました...</div>
-                <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
-                <div className="text-xs sm:text-sm text-gray-500 mt-1">対応カードは入手できません</div>
-                {lastDrawnCards.length > 0 && (
-                  <PanicCardHistory cards={lastDrawnCards} defectPointsLog={lastDefectPointsLog} />
-                )}
-              </>
-            ) : (
-              <>
-                <div className="text-3xl sm:text-4xl font-bold text-green-400">出荷完了！</div>
-                <div className="text-xl sm:text-2xl text-white">+{turnProfit}点 獲得</div>
-                {turnProfit <= 5 && (
-                  <div className="text-sm text-green-300">
-                    対応カードを{turnProfit <= 2 ? 2 : 1}枚入手しました
-                  </div>
-                )}
-              </>
-            )}
+          {/* ターン結果（ソロと同一レイアウト） */}
+          {localPhase === 'result' && (
+            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+              {turnPanicked ? (
+                <>
+                  <div className={`text-3xl sm:text-4xl font-bold text-red-400 ${anim.panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
+                  <div className="text-sm sm:text-base text-gray-400">このラウンドの利益は全て失われました...</div>
+                  <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
+                  <div className="text-xs sm:text-sm text-gray-500 mt-1">対応カードは入手できません</div>
+                  {lastDrawnCards.length > 0 && (
+                    <PanicCardHistory cards={lastDrawnCards} defectPointsLog={lastDefectPointsLog} />
+                  )}
+                </>
+              ) : (
+                <>
+                  <div className="text-3xl sm:text-4xl font-bold text-green-400">出荷完了！</div>
+                  <div className="text-xl sm:text-2xl text-white">+{turnProfit}点 獲得</div>
+                  {turnProfit <= 5 && (
+                    <div className="text-sm text-green-300">
+                      対応カードを{turnProfit <= 2 ? 2 : 1}枚入手しました
+                    </div>
+                  )}
+                </>
+              )}
 
-            <div className="text-gray-300 mt-4">
-              累計スコア: <span className="text-xl font-bold text-white">{myScore}pt</span>
+              <div className="text-gray-300 mt-4">
+                累計スコア: <span className="text-xl font-bold text-white">{myScore}pt</span>
+              </div>
+
+              <button
+                onClick={handleNextTurn}
+                className="mt-2 sm:mt-4 px-8 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
+              >
+                次へ
+              </button>
             </div>
+          )}
 
-            <button
-              onClick={handleNextTurn}
-              className="mt-2 sm:mt-4 px-8 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
-            >
-              次へ
-            </button>
-          </div>
-        )}
+          {/* ゲーム終了 */}
+          {localPhase === 'game_over' && (
+            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12 px-4">
+              <div className="text-2xl sm:text-3xl font-bold text-amber-400">ゲーム終了</div>
 
-        {/* ゲーム終了 */}
-        {localPhase === 'game_over' && (
-          <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12 px-4">
-            <div className="text-2xl sm:text-3xl font-bold text-amber-400">ゲーム終了</div>
+              <div className="flex gap-4 sm:gap-8">
+                {playerOrder.map((pid) => {
+                  const score = pid === uid ? myScore : getPlayerScore(pid);
+                  const isMe = pid === uid;
+                  return (
+                    <div key={pid} className={`p-4 sm:p-6 rounded-xl border ${isMe ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800'}`}>
+                      <div className="text-xs sm:text-sm text-gray-400 mb-1">{getPlayerName(pid)}{isMe ? '（あなた）' : ''}</div>
+                      <div className="text-2xl sm:text-3xl font-bold text-white">{score}pt</div>
+                    </div>
+                  );
+                })}
+              </div>
 
-            <div className="flex gap-4 sm:gap-8">
-              {playerOrder.map((pid) => {
-                const score = pid === uid ? myScore : getPlayerScore(pid);
-                const isMe = pid === uid;
-                return (
-                  <div key={pid} className={`p-4 sm:p-6 rounded-xl border ${isMe ? 'border-blue-500 bg-blue-900/20' : 'border-gray-600 bg-gray-800'}`}>
-                    <div className="text-xs sm:text-sm text-gray-400 mb-1">{getPlayerName(pid)}{isMe ? '（あなた）' : ''}</div>
-                    <div className="text-2xl sm:text-3xl font-bold text-white">{score}pt</div>
-                  </div>
-                );
-              })}
+              {(() => {
+                const myFinalScore = myScore;
+                const opScore = getPlayerScore(opponentUid);
+                if (myFinalScore > opScore) return <p className="text-xl sm:text-2xl text-amber-400 font-bold">勝利！</p>;
+                if (myFinalScore < opScore) return <p className="text-xl sm:text-2xl text-blue-400 font-bold">敗北...</p>;
+                return <p className="text-xl sm:text-2xl text-gray-300 font-bold">引き分け</p>;
+              })()}
+
+              <button
+                onClick={onBack}
+                className="px-8 py-3 min-h-[44px] bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold cursor-pointer transition-all"
+              >
+                タイトルに戻る
+              </button>
             </div>
+          )}
+        </div>
 
-            {(() => {
-              const myFinalScore = myScore;
-              const opScore = getPlayerScore(opponentUid);
-              if (myFinalScore > opScore) return <p className="text-xl sm:text-2xl text-amber-400 font-bold">勝利！</p>;
-              if (myFinalScore < opScore) return <p className="text-xl sm:text-2xl text-blue-400 font-bold">敗北...</p>;
-              return <p className="text-xl sm:text-2xl text-gray-300 font-bold">引き分け</p>;
-            })()}
-
-            <button
-              onClick={onBack}
-              className="px-8 py-3 min-h-[44px] bg-gray-700 hover:bg-gray-600 rounded-lg text-white font-bold cursor-pointer transition-all"
-            >
-              タイトルに戻る
-            </button>
-          </div>
-        )}
+        <RuleSidePanel {...ruleProps} />
       </div>
 
       {/* 対応カード手札（ソロと同一コンポーネント） */}
@@ -646,6 +659,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
           remaining={gameState.samplingNextRound ?? 0}
         />
       )}
+
+      <RuleMobilePanel {...ruleProps} />
     </div>
   );
 }

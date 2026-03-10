@@ -7,7 +7,7 @@ type Props = {
 
 export function RoundHistory({ history, currentRound }: Props) {
   return (
-    <div className="bg-gray-800 px-3 sm:px-6 py-2 sm:py-3 border-t border-gray-700">
+    <div className="bg-gray-800 px-3 sm:px-6 py-1.5 sm:py-2 border-t border-gray-700">
       <div className="flex gap-2 sm:gap-3 items-center overflow-x-auto">
         {history.map((r) => (
           <div

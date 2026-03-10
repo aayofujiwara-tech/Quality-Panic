@@ -56,7 +56,7 @@ export function GameBoard({
   })();
 
   return (
-    <div className={`flex flex-col min-h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
+    <div className={`flex flex-col h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
       {/* パニックフラッシュオーバーレイ */}
       {anim.panicking && (
         <div className="fixed inset-0 z-40 pointer-events-none panic-overlay" />
@@ -83,7 +83,7 @@ export function GameBoard({
         nextContamination={isShipping ? nextContamination : undefined}
       />
 
-      <div className="flex-1 flex flex-row overflow-hidden">
+      <div className="flex-1 flex flex-row min-h-0">
         <div className="flex-1 p-2 sm:p-4 md:p-3 relative overflow-y-auto">
           {/* 汚染投入テキスト */}
           {anim.contaminationText && (
@@ -104,7 +104,7 @@ export function GameBoard({
           )}
 
           {state.phase === 'prepare' && (
-            <div className="flex flex-col items-center justify-center gap-3 sm:gap-5 py-6 sm:py-10">
+            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
               <div className="text-2xl font-bold text-amber-400">
                 ラウンド {state.round} 準備中
               </div>

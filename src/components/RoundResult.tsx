@@ -156,21 +156,21 @@ export function PanicCardHistory({ cards, defectPointsLog }: { cards: Card[]; de
 
 export function RoundResultView({ result, totalScore, targetScore, responseCardsGained, onNext, drawnCards, defectPointsLog, panicking }: Props) {
   return (
-    <div className="flex flex-col items-center justify-center gap-6 py-12">
+    <div className="flex flex-col items-center justify-center gap-2 sm:gap-3 py-4 sm:py-6">
       {result.panicked ? (
         <>
-          <div className={`text-4xl font-bold text-red-400 ${panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
-          <div className="text-gray-400">このラウンドの利益は全て失われました...</div>
-          <div className="text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
-          <div className="text-sm text-gray-500 mt-1">対応カードは入手できません</div>
+          <div className={`text-2xl sm:text-4xl font-bold text-red-400 ${panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
+          <div className="text-sm text-gray-400">このラウンドの利益は全て失われました...</div>
+          <div className="text-xs sm:text-sm text-red-300">汚染ストックから3枚が山札に追加投入されました</div>
+          <div className="text-xs sm:text-sm text-gray-500">対応カードは入手できません</div>
           {drawnCards && drawnCards.length > 0 && (
             <PanicCardHistory cards={drawnCards} defectPointsLog={defectPointsLog} />
           )}
         </>
       ) : (
         <>
-          <div className="text-4xl font-bold text-green-400">出荷完了！</div>
-          <div className="text-2xl text-white">
+          <div className="text-2xl sm:text-4xl font-bold text-green-400">出荷完了！</div>
+          <div className="text-lg sm:text-2xl text-white">
             +{result.profit}点 獲得
           </div>
           {responseCardsGained > 0 && (
@@ -181,7 +181,7 @@ export function RoundResultView({ result, totalScore, targetScore, responseCards
         </>
       )}
 
-      <div className="text-gray-300 mt-4">
+      <div className="text-gray-300 mt-1">
         累計スコア: <span className="text-xl font-bold text-white">{totalScore}</span>
         <span className="text-gray-500">/{targetScore}</span>
       </div>
@@ -192,7 +192,7 @@ export function RoundResultView({ result, totalScore, targetScore, responseCards
 
       <button
         onClick={onNext}
-        className="mt-4 px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-lg cursor-pointer transition-all"
+        className="mt-1 px-8 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
       >
         次のラウンドへ
       </button>

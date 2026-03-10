@@ -420,7 +420,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   }
 
   return (
-    <div className={`flex flex-col min-h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
+    <div className={`flex flex-col h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
       {/* パニックフラッシュオーバーレイ */}
       {anim.panicking && (
         <div className="fixed inset-0 z-40 pointer-events-none panic-overlay" />
@@ -486,7 +486,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         })()}
       </div>
 
-      <div className="flex-1 flex flex-row overflow-hidden">
+      <div className="flex-1 flex flex-row min-h-0">
         <div className="flex-1 p-2 sm:p-4 md:p-3 relative overflow-y-auto">
           {/* 汚染投入テキスト */}
           {anim.contaminationText && (
@@ -507,7 +507,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* 相手のターン待ち */}
           {localPhase === 'waiting_turn' && (
-            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
               <div className="text-xl sm:text-2xl font-bold text-gray-300">
                 {getPlayerName(gameState.currentPlayerUid)} のターン
               </div>
@@ -518,7 +518,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* 準備フェーズ */}
           {localPhase === 'prepare' && isMyTurn && (
-            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
               <div className="text-xl sm:text-2xl font-bold text-amber-400">
                 ラウンド {gameState.round} 準備中
               </div>
@@ -573,7 +573,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* ターン結果（ソロと同一レイアウト） */}
           {localPhase === 'result' && (
-            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
               {turnPanicked ? (
                 <>
                   <div className={`text-3xl sm:text-4xl font-bold text-red-400 ${anim.panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
@@ -611,7 +611,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* ゲーム終了 */}
           {localPhase === 'game_over' && (
-            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12 px-4">
+            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6 px-4">
               <div className="text-2xl sm:text-3xl font-bold text-amber-400">ゲーム終了</div>
 
               <div className="flex gap-4 sm:gap-8">

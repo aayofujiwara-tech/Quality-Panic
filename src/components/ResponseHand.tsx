@@ -174,8 +174,8 @@ export function ResponseHand({ hand, onUseCard, disabled, highlightUsable, cardU
   if (hand.length === 0) return null;
 
   return (
-    <div className="border-t border-gray-700 px-3 sm:px-6 py-2 sm:py-3" ref={containerRef}>
-      <div className="text-xs text-gray-500 mb-1.5 sm:mb-2">対応カード手札 ({hand.length}/3)</div>
+    <div className="border-t border-gray-700 px-3 sm:px-6 py-1.5 sm:py-2" ref={containerRef}>
+      <div className="text-xs text-gray-500 mb-1">対応カード手札 ({hand.length}/3)</div>
       <div className="flex gap-1.5 sm:gap-2 flex-wrap">
         {hand.map((card, i) => {
           const isDefectResponse = card.responseType !== 'design_change';

@@ -35,6 +35,7 @@ export function initGame(difficulty: Difficulty): GameState {
     samplingNextRound: 0,
     samplingCards: [],
     samplingInProgress: false,
+    samplingDeferredCount: 0,
     waterInspectionActive: false,
 
     roundHistory: [],
@@ -82,6 +83,7 @@ export function prepareRound(state: GameState): GameState {
   newState.snsFireActive = false;
   newState.forcedDraws = 0;
   newState.waterInspectionActive = false;
+  newState.samplingDeferredCount = 0;
 
   // 抜き取り検査: 前ラウンドでカウンターが1以上なら3枚公開
   if (state.samplingNextRound > 0 && newState.drawPile.length >= 3) {
@@ -134,7 +136,14 @@ export function selectSamplingCard(state: GameState, index: number): GameState {
         phase: 'sampling',
       };
     }
-    return { ...s, samplingInProgress: false, phase: 'shipping' };
+    // セッション終了: 繰り越しカウンターをsamplingNextRoundにマージ
+    return {
+      ...s,
+      samplingInProgress: false,
+      phase: 'shipping',
+      samplingNextRound: s.samplingNextRound + (s.samplingDeferredCount ?? 0),
+      samplingDeferredCount: 0,
+    };
   };
 
   // 選択したカードの効果を適用
@@ -214,6 +223,7 @@ function handleDefectCard(state: GameState, card: DefectCard): GameState {
     return {
       ...state,
       waterInspectionActive: false,
+      snsFireActive: false, // 不具合が無効化されてもSNS炎上は消費
       defectPointsLog: [...state.defectPointsLog, logEntry],
     };
   }
@@ -286,6 +296,7 @@ export function useResponseCard(state: GameState, cardIndex: number): GameState 
     responseHand: newHand,
     pendingDefect: null,
     phase: 'shipping',
+    snsFireActive: false, // 不具合が無効化されてもSNS炎上は消費
     defectPointsLog: [...state.defectPointsLog, logEntry],
   };
 
@@ -408,7 +419,12 @@ function applyEventEffect(state: GameState, card: EventCard): GameState {
       break;
 
     case 'sampling_inspection':
-      newState.samplingNextRound = state.samplingNextRound + 1;
+      // 検査セッション中に発動した場合は次ラウンドに繰り越す
+      if (state.samplingInProgress) {
+        newState.samplingDeferredCount = (state.samplingDeferredCount ?? 0) + 1;
+      } else {
+        newState.samplingNextRound = state.samplingNextRound + 1;
+      }
       break;
   }
 
@@ -436,8 +452,14 @@ export function dismissEvent(state: GameState): GameState {
     };
   }
 
-  // それ以外はshippingに戻る（イベントで加算されたカウンターは次ラウンドで消費）
-  return { ...newState, samplingInProgress: false, phase: 'shipping' };
+  // それ以外はshippingに戻る（繰り越しカウンターをマージ）
+  return {
+    ...newState,
+    samplingInProgress: false,
+    phase: 'shipping',
+    samplingNextRound: newState.samplingNextRound + (newState.samplingDeferredCount ?? 0),
+    samplingDeferredCount: 0,
+  };
 }
 
 // パニック発生
@@ -558,6 +580,7 @@ export function nextRound(state: GameState): GameState {
     snsFireActive: false,
     forcedDraws: 0,
     samplingInProgress: false,
+    samplingDeferredCount: 0,
     waterInspectionActive: false,
   };
 }

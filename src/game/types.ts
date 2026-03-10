@@ -85,6 +85,7 @@ export type GameState = {
   samplingNextRound: number;
   samplingCards: Card[];
   samplingInProgress: boolean; // prepareRound開始のサンプリングセッション中
+  samplingDeferredCount: number; // 検査セッション中に発動したsampling_inspectionの繰り越しカウンター
   waterInspectionActive: boolean;
 
   // 履歴

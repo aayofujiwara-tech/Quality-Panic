@@ -227,6 +227,7 @@ export function multiDrawCard(
       const dc = card as DefectCard;
       if (turn.waterInspectionActive) {
         turn.waterInspectionActive = false;
+        turn.snsFireActive = false; // 不具合が無効化されてもSNS炎上は消費
         turn.defectPointsLog = [...(turn.defectPointsLog ?? []), {
           points: turn.currentDefectPoints,
           reason: `🛡️水際検査 → ${dc.name}無効`,
@@ -354,6 +355,9 @@ export function multiUseResponseCard(
     changeType: 'nullified' as const,
   }];
 
+  // 不具合が無効化されてもSNS炎上は消費
+  turn.snsFireActive = false;
+
   let newState = { ...gameState };
 
   switch (card.responseType) {
@@ -374,6 +378,12 @@ export function multiUseResponseCard(
       turn.waterInspectionActive = true;
       break;
   }
+
+  // 使用済み対応カードを捨て山に追加（リサイクル用）
+  // 手札にはIDがないため、新IDを振ってcardMasterに登録する
+  const recycleId = nextCardId();
+  cardMaster[recycleId] = card as unknown as Card;
+  newState.responseDiscard = [...(newState.responseDiscard ?? []), recycleId];
 
   newState.turnState = turn;
   return { gameState: newState, newResponseHand: newHand };

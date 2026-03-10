@@ -77,10 +77,14 @@ export function GameBoard({
         difficulty={state.difficulty}
         scoreCounting={anim.scoreCounting}
         waterInspectionActive={state.waterInspectionActive}
+        deckRemaining={isShipping ? state.drawPile.length : undefined}
+        defectRate={isShipping ? defectRate : undefined}
+        drawPile={isShipping ? state.drawPile : undefined}
+        nextContamination={isShipping ? nextContamination : undefined}
       />
 
       <div className="flex-1 flex flex-row overflow-hidden">
-        <div className="flex-1 p-3 sm:p-6 relative overflow-y-auto">
+        <div className="flex-1 p-2 sm:p-4 md:p-3 relative overflow-y-auto">
           {/* 汚染投入テキスト */}
           {anim.contaminationText && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
@@ -100,7 +104,7 @@ export function GameBoard({
           )}
 
           {state.phase === 'prepare' && (
-            <div className="flex flex-col items-center justify-center gap-4 sm:gap-6 py-8 sm:py-12">
+            <div className="flex flex-col items-center justify-center gap-3 sm:gap-5 py-6 sm:py-10">
               <div className="text-2xl font-bold text-amber-400">
                 ラウンド {state.round} 準備中
               </div>
@@ -124,30 +128,32 @@ export function GameBoard({
           )}
 
           {isShipping && (
-            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
-              <DrawPile
-                remaining={state.drawPile.length}
-                defectRate={defectRate}
-                drawPile={state.drawPile}
-                nextContamination={nextContamination}
-              />
-              <div className="flex-1 flex flex-col">
-                <ActiveEffects state={state} />
-                <DrawnCards
-                  cards={state.drawnCardsThisRound}
-                  currentProfit={state.currentRoundProfit}
-                  currentDefectPoints={state.currentDefectPoints}
-                  panicThreshold={state.panicThreshold}
-                />
-                <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
-                <ActionButtons
-                  onDraw={onDraw}
-                  onStop={onStop}
-                  canDraw={state.drawPile.length > 0 && state.phase === 'shipping' && !anim.busy}
-                  canStop={canStop(state) && state.phase === 'shipping' && !anim.busy}
-                  cardsDrawn={state.drawnCardsThisRound.length}
+            <div className="flex flex-col">
+              {/* スマホ: DrawPileを表示（PCではStatusBarに統合済み） */}
+              <div className="md:hidden mb-2">
+                <DrawPile
+                  remaining={state.drawPile.length}
+                  defectRate={defectRate}
+                  drawPile={state.drawPile}
+                  nextContamination={nextContamination}
                 />
               </div>
+
+              <ActiveEffects state={state} />
+              <DrawnCards
+                cards={state.drawnCardsThisRound}
+                currentProfit={state.currentRoundProfit}
+                currentDefectPoints={state.currentDefectPoints}
+                panicThreshold={state.panicThreshold}
+              />
+              <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
+              <ActionButtons
+                onDraw={onDraw}
+                onStop={onStop}
+                canDraw={state.drawPile.length > 0 && state.phase === 'shipping' && !anim.busy}
+                canStop={canStop(state) && state.phase === 'shipping' && !anim.busy}
+                cardsDrawn={state.drawnCardsThisRound.length}
+              />
             </div>
           )}
 
@@ -241,9 +247,9 @@ function ActiveEffects({ state }: { state: GameState }) {
   if (effects.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-3">
+    <div className="flex flex-wrap gap-1.5 mb-2">
       {effects.map((e, i) => (
-        <span key={i} className={`text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 ${e.color}`}>
+        <span key={i} className={`text-xs px-2 py-0.5 rounded bg-gray-800 border border-gray-700 ${e.color}`}>
           {e.icon} {e.text}
         </span>
       ))}

@@ -433,32 +433,61 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
       )}
 
       {/* ステータスバー（マルチ専用：両者スコア＋手番表示） */}
-      <div className={`flex items-center justify-between bg-gray-800 px-3 sm:px-6 py-2 sm:py-3 border-b border-gray-700 ${gameState?.turnState?.waterInspectionActive ? 'shield-effect' : ''}`}>
-        <h1 className="text-base sm:text-xl font-bold text-amber-400 shrink-0">品証パニック</h1>
-        <div className="flex gap-2 sm:gap-6 text-xs sm:text-sm flex-wrap justify-end">
-          <span className="text-gray-300">
-            R<span className="text-white font-bold text-sm sm:text-base">{gameState.round}</span>/{gameState.maxRounds}
-          </span>
-          {playerOrder.map((pid) => {
-            const isMe = pid === uid;
-            const score = isMe ? myScore : getPlayerScore(pid);
-            const isCurrent = pid === gameState.currentPlayerUid;
-            return (
-              <span key={pid} className={isMe ? 'text-blue-300' : 'text-gray-300'}>
-                <span className="hidden sm:inline">{getPlayerName(pid)}{isMe ? '(自分)' : ''}: </span>
-                <span className="sm:hidden">{isMe ? '自分' : '相手'}: </span>
-                <span className={`font-bold text-sm sm:text-base text-white ${isMe && anim.scoreCounting ? 'score-count-up' : ''}`}>{score}pt</span>
-                {isCurrent && (
-                  <span className="ml-1 text-xs text-amber-400 border border-amber-400/30 px-1 rounded">手番</span>
-                )}
-              </span>
-            );
-          })}
+      <div className={`bg-gray-800 border-b border-gray-700 ${gameState?.turnState?.waterInspectionActive ? 'shield-effect' : ''}`}>
+        {/* 1行目: ゲーム情報 */}
+        <div className="flex items-center justify-between px-3 sm:px-6 py-1.5 sm:py-2">
+          <h1 className="text-base sm:text-xl font-bold text-amber-400 shrink-0">品証パニック</h1>
+          <div className="flex gap-2 sm:gap-6 text-xs sm:text-sm flex-wrap justify-end">
+            <span className="text-gray-300">
+              R<span className="text-white font-bold text-sm sm:text-base">{gameState.round}</span>/{gameState.maxRounds}
+            </span>
+            {playerOrder.map((pid) => {
+              const isMe = pid === uid;
+              const score = isMe ? myScore : getPlayerScore(pid);
+              const isCurrent = pid === gameState.currentPlayerUid;
+              return (
+                <span key={pid} className={isMe ? 'text-blue-300' : 'text-gray-300'}>
+                  <span className="hidden sm:inline">{getPlayerName(pid)}{isMe ? '(自分)' : ''}: </span>
+                  <span className="sm:hidden">{isMe ? '自分' : '相手'}: </span>
+                  <span className={`font-bold text-sm sm:text-base text-white ${isMe && anim.scoreCounting ? 'score-count-up' : ''}`}>{score}pt</span>
+                  {isCurrent && (
+                    <span className="ml-1 text-xs text-amber-400 border border-amber-400/30 px-1 rounded">手番</span>
+                  )}
+                </span>
+              );
+            })}
+          </div>
         </div>
+        {/* 2行目: 山札情報（PC: 常時表示、スマホ: 非表示=DrawPileコンポーネントで表示） */}
+        {isShipping && isMyTurn && (() => {
+          const deckRemaining = (gameState.drawPile ?? []).length;
+          const defectRate = getMultiDefectRate(gameState.drawPile ?? [], cardMaster);
+          const ratePercent = Math.round(defectRate * 100);
+          const rateColor = ratePercent < 20 ? 'text-green-400' : ratePercent < 40 ? 'text-yellow-400' : 'text-red-400';
+          const products = drawPileCards.filter(c => c.type === 'product').length;
+          const defects = drawPileCards.filter(c => c.type === 'defect').length;
+          const events = drawPileCards.filter(c => c.type === 'event').length;
+          return (
+            <div className="hidden md:flex items-center gap-4 px-3 sm:px-6 py-1 border-t border-gray-700/50 text-xs text-gray-400">
+              <span>📦 山札 <span className="text-white font-bold">{deckRemaining}</span>枚</span>
+              <span className={rateColor}>不具合率 {ratePercent}%</span>
+              <span className="flex gap-2">
+                <span className="text-blue-300">製品{products}</span>
+                <span className="text-yellow-400">不具合{defects}</span>
+                <span className="text-purple-300">イベント{events}</span>
+              </span>
+              {nextContamination && nextContamination.count > 0 && (
+                <span className="text-red-300">
+                  次R汚染: +{nextContamination.count}枚{nextContamination.tentative ? '~' : ''}
+                </span>
+              )}
+            </div>
+          );
+        })()}
       </div>
 
       <div className="flex-1 flex flex-row overflow-hidden">
-        <div className="flex-1 p-3 sm:p-6 relative overflow-y-auto">
+        <div className="flex-1 p-2 sm:p-4 md:p-3 relative overflow-y-auto">
           {/* 汚染投入テキスト */}
           {anim.contaminationText && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
@@ -514,30 +543,31 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* 出荷中（ソロと同一レイアウト） */}
           {isShipping && isMyTurn && gameState.turnState && (
-            <div className="flex flex-col md:flex-row gap-4 md:gap-8 items-stretch md:items-start">
-              <DrawPile
-                remaining={(gameState.drawPile ?? []).length}
-                defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
-                drawPile={drawPileCards}
-                nextContamination={nextContamination}
-              />
-              <div className="flex-1 flex flex-col">
-                <ActiveEffectsMulti turnState={gameState.turnState} />
-                <DrawnCards
-                  cards={drawnCardsThisTurn}
-                  currentProfit={gameState.turnState.currentProfit}
-                  currentDefectPoints={gameState.turnState.currentDefectPoints}
-                  panicThreshold={gameState.turnState.panicThreshold}
-                />
-                <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
-                <ActionButtons
-                  onDraw={handleDraw}
-                  onStop={handleStop}
-                  canDraw={(gameState.drawPile ?? []).length > 0 && localPhase === 'shipping' && !anim.busy}
-                  canStop={multiCanStop(gameState.turnState) && localPhase === 'shipping' && !anim.busy}
-                  cardsDrawn={drawnCardsThisTurn.length}
+            <div className="flex flex-col">
+              {/* スマホ: DrawPileを表示（PCではStatusBarに統合済み） */}
+              <div className="md:hidden mb-2">
+                <DrawPile
+                  remaining={(gameState.drawPile ?? []).length}
+                  defectRate={getMultiDefectRate(gameState.drawPile ?? [], cardMaster)}
+                  drawPile={drawPileCards}
+                  nextContamination={nextContamination}
                 />
               </div>
+              <ActiveEffectsMulti turnState={gameState.turnState} />
+              <DrawnCards
+                cards={drawnCardsThisTurn}
+                currentProfit={gameState.turnState.currentProfit}
+                currentDefectPoints={gameState.turnState.currentDefectPoints}
+                panicThreshold={gameState.turnState.panicThreshold}
+              />
+              <CardFlipAnimation flipping={anim.flipping} flippingCard={anim.flippingCard} />
+              <ActionButtons
+                onDraw={handleDraw}
+                onStop={handleStop}
+                canDraw={(gameState.drawPile ?? []).length > 0 && localPhase === 'shipping' && !anim.busy}
+                canStop={multiCanStop(gameState.turnState) && localPhase === 'shipping' && !anim.busy}
+                cardsDrawn={drawnCardsThisTurn.length}
+              />
             </div>
           )}
 
@@ -731,9 +761,9 @@ function ActiveEffectsMulti({ turnState }: { turnState: NonNullable<MultiplayerG
   if (effects.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-2 mb-3">
+    <div className="flex flex-wrap gap-1.5 mb-2">
       {effects.map((e, i) => (
-        <span key={i} className={`text-xs px-2 py-1 rounded bg-gray-800 border border-gray-700 ${e.color}`}>
+        <span key={i} className={`text-xs px-2 py-0.5 rounded bg-gray-800 border border-gray-700 ${e.color}`}>
           {e.icon} {e.text}
         </span>
       ))}

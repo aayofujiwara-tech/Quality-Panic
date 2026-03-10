@@ -40,22 +40,19 @@ function cardLabel(card: Card): string {
   }
 }
 
-// カードサイズ定数（Tailwindクラス）
-// モバイル: w-14 (56px) x h-[72px]
-// sm: w-16 (64px) x h-[88px]
-// md: w-20 (80px) x h-[112px]
-const CARD_SIZE = 'w-14 h-[72px] sm:w-16 sm:h-[88px] md:w-20 md:h-[112px]';
+// PC: よりコンパクトなサイズ、スマホ: 従来サイズ
+const CARD_SIZE = 'w-12 h-[60px] sm:w-14 sm:h-[72px] md:w-16 md:h-[80px]';
 
 export function CardFlipAnimation({ flipping, flippingCard }: Props) {
   return (
-    <div className="flex justify-center my-2">
+    <div className="flex justify-center my-1 sm:my-2">
       {flipping && flippingCard ? (
         <div className="card-flip-container">
           <div className={`card-flip ${CARD_SIZE} relative`}>
             {/* 表面 */}
             <div className={`card-flip-front w-full h-full rounded-lg border-2 flex flex-col items-center justify-center ${cardStyle(flippingCard)}`}>
-              <div className="text-lg sm:text-xl md:text-2xl">{cardIcon(flippingCard)}</div>
-              <div className="text-[8px] sm:text-[10px] md:text-xs font-bold mt-0.5 text-center px-0.5">
+              <div className="text-base sm:text-lg md:text-xl">{cardIcon(flippingCard)}</div>
+              <div className="text-[7px] sm:text-[8px] md:text-[10px] font-bold mt-0.5 text-center px-0.5">
                 {cardLabel(flippingCard)}
               </div>
             </div>
@@ -65,8 +62,8 @@ export function CardFlipAnimation({ flipping, flippingCard }: Props) {
         </div>
       ) : (
         <div className={`${CARD_SIZE} rounded-lg border-2 border-dashed border-gray-600 flex items-center justify-center`}>
-          <span className="text-[9px] sm:text-[10px] md:text-xs text-gray-600 text-center leading-tight">
-            次の<br />出荷カード
+          <span className="text-[8px] sm:text-[9px] md:text-[10px] text-gray-600 text-center leading-tight">
+            次の<br />出荷
           </span>
         </div>
       )}

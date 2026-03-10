@@ -56,7 +56,7 @@ export function GameBoard({
   })();
 
   return (
-    <div className={`flex flex-col h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
+    <div className={`${anim.panicking ? 'panic-shake' : ''}`}>
       {/* パニックフラッシュオーバーレイ */}
       {anim.panicking && (
         <div className="fixed inset-0 z-40 pointer-events-none panic-overlay" />
@@ -83,8 +83,9 @@ export function GameBoard({
         nextContamination={isShipping ? nextContamination : undefined}
       />
 
-      <div className="flex-1 flex flex-row min-h-0">
-        <div className="flex-1 p-2 sm:p-4 md:p-3 relative overflow-y-auto">
+      {/* メインコンテンツ + サイドパネル */}
+      <div className="flex flex-row">
+        <div className="flex-1 min-w-0 p-2 sm:p-4 md:p-3 relative">
           {/* 汚染投入テキスト */}
           {anim.contaminationText && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
@@ -104,7 +105,7 @@ export function GameBoard({
           )}
 
           {state.phase === 'prepare' && (
-            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 py-3 sm:py-4">
               <div className="text-2xl font-bold text-amber-400">
                 ラウンド {state.round} 準備中
               </div>
@@ -120,7 +121,7 @@ export function GameBoard({
               )}
               <button
                 onClick={onPrepare}
-                className="px-8 py-3 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-lg cursor-pointer transition-all"
+                className="px-8 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-lg cursor-pointer transition-all"
               >
                 出荷開始！
               </button>
@@ -180,6 +181,7 @@ export function GameBoard({
         <RuleSidePanel {...ruleProps} />
       </div>
 
+      {/* 対応カード手札 — コンテンツ直下に配置 */}
       {isShipping && (
         <ResponseHand
           hand={state.responseHand}
@@ -218,6 +220,7 @@ export function GameBoard({
         />
       )}
 
+      {/* ラウンド履歴 — コンテンツ直下に配置 */}
       <RoundHistory history={state.roundHistory} currentRound={state.round} />
 
       <RuleMobilePanel {...ruleProps} />
@@ -247,7 +250,7 @@ function ActiveEffects({ state }: { state: GameState }) {
   if (effects.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 mb-2">
+    <div className="flex flex-wrap gap-1.5 mb-1">
       {effects.map((e, i) => (
         <span key={i} className={`text-xs px-2 py-0.5 rounded bg-gray-800 border border-gray-700 ${e.color}`}>
           {e.icon} {e.text}

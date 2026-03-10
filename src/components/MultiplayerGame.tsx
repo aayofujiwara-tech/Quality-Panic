@@ -420,7 +420,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
   }
 
   return (
-    <div className={`flex flex-col h-screen ${anim.panicking ? 'panic-shake' : ''}`}>
+    <div className={`${anim.panicking ? 'panic-shake' : ''}`}>
       {/* パニックフラッシュオーバーレイ */}
       {anim.panicking && (
         <div className="fixed inset-0 z-40 pointer-events-none panic-overlay" />
@@ -486,8 +486,8 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
         })()}
       </div>
 
-      <div className="flex-1 flex flex-row min-h-0">
-        <div className="flex-1 p-2 sm:p-4 md:p-3 relative overflow-y-auto">
+      <div className="flex flex-row">
+        <div className="flex-1 min-w-0 p-2 sm:p-4 md:p-3 relative">
           {/* 汚染投入テキスト */}
           {anim.contaminationText && (
             <div className="absolute top-2 left-1/2 -translate-x-1/2 z-30">
@@ -507,7 +507,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* 相手のターン待ち */}
           {localPhase === 'waiting_turn' && (
-            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 py-3 sm:py-4">
               <div className="text-xl sm:text-2xl font-bold text-gray-300">
                 {getPlayerName(gameState.currentPlayerUid)} のターン
               </div>
@@ -518,7 +518,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* 準備フェーズ */}
           {localPhase === 'prepare' && isMyTurn && (
-            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 py-3 sm:py-4">
               <div className="text-xl sm:text-2xl font-bold text-amber-400">
                 ラウンド {gameState.round} 準備中
               </div>
@@ -573,7 +573,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* ターン結果（ソロと同一レイアウト） */}
           {localPhase === 'result' && (
-            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 py-3 sm:py-4">
               {turnPanicked ? (
                 <>
                   <div className={`text-3xl sm:text-4xl font-bold text-red-400 ${anim.panicking ? 'panic-text-appear' : ''}`}>パニック発生！</div>
@@ -596,13 +596,13 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
                 </>
               )}
 
-              <div className="text-gray-300 mt-4">
+              <div className="text-gray-300 mt-1">
                 累計スコア: <span className="text-xl font-bold text-white">{myScore}pt</span>
               </div>
 
               <button
                 onClick={handleNextTurn}
-                className="mt-2 sm:mt-4 px-8 py-3 min-h-[44px] bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
+                className="mt-1 px-8 py-2 bg-amber-600 hover:bg-amber-500 text-white font-bold rounded-lg text-base sm:text-lg cursor-pointer transition-all"
               >
                 次へ
               </button>
@@ -611,7 +611,7 @@ export function MultiplayerGame({ roomCode, uid, initialRoom, onBack }: Props) {
 
           {/* ゲーム終了 */}
           {localPhase === 'game_over' && (
-            <div className="flex flex-col items-center justify-center gap-2 sm:gap-4 py-4 sm:py-6 px-4">
+            <div className="flex flex-col items-center gap-2 sm:gap-3 py-3 sm:py-4 px-4">
               <div className="text-2xl sm:text-3xl font-bold text-amber-400">ゲーム終了</div>
 
               <div className="flex gap-4 sm:gap-8">
@@ -761,7 +761,7 @@ function ActiveEffectsMulti({ turnState }: { turnState: NonNullable<MultiplayerG
   if (effects.length === 0) return null;
 
   return (
-    <div className="flex flex-wrap gap-1.5 mb-2">
+    <div className="flex flex-wrap gap-1.5 mb-1">
       {effects.map((e, i) => (
         <span key={i} className={`text-xs px-2 py-0.5 rounded bg-gray-800 border border-gray-700 ${e.color}`}>
           {e.icon} {e.text}

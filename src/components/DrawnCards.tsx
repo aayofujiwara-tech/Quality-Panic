@@ -45,7 +45,7 @@ function cardIcon(card: Card): string {
 export function DrawnCards({ cards, currentProfit, currentDefectPoints, panicThreshold }: Props) {
   return (
     <div>
-      <div className="flex items-center gap-2 sm:gap-4 mb-1 sm:mb-2 flex-wrap">
+      <div className="flex items-center gap-2 sm:gap-4 mb-0.5 sm:mb-1 flex-wrap">
         <span className="text-xs sm:text-sm text-gray-400">累計利益:</span>
         <span className="text-base sm:text-xl font-bold text-blue-400">{currentProfit}点</span>
         <span className="text-xs sm:text-sm text-gray-400 ml-2 sm:ml-4">不具合Pt:</span>

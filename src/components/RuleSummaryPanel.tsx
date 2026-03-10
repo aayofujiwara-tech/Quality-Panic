@@ -247,7 +247,7 @@ function PanelContent({ contaminationStock, responseStockCount, responseDiscardC
 // PC用サイドパネル（md以上で表示）
 export function RuleSidePanel(props: Props) {
   return (
-    <aside className="hidden md:block w-[240px] flex-shrink-0 bg-gray-800/60 border-l border-gray-700 px-2.5 py-2 overflow-y-auto max-h-[calc(100vh-56px)]">
+    <aside className="hidden md:block w-[240px] flex-shrink-0 bg-gray-800/60 border-l border-gray-700 px-2.5 py-2">
       <div className="text-[10px] font-bold text-gray-400 mb-1">ルールサマリー</div>
       <PanelContent {...props} />
     </aside>

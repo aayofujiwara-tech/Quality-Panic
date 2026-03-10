@@ -40,12 +40,12 @@ function cardLabel(card: Card): string {
   }
 }
 
-// PC: よりコンパクトなサイズ、スマホ: 従来サイズ
-const CARD_SIZE = 'w-12 h-[60px] sm:w-14 sm:h-[72px] md:w-16 md:h-[80px]';
+// PC: コンパクト、スマホ: 従来サイズ
+const CARD_SIZE = 'w-12 h-[60px] sm:w-14 sm:h-[68px] md:w-14 md:h-[68px]';
 
 export function CardFlipAnimation({ flipping, flippingCard }: Props) {
   return (
-    <div className="flex justify-center my-0.5 sm:my-1">
+    <div className="flex justify-center my-0.5">
       {flipping && flippingCard ? (
         <div className="card-flip-container">
           <div className={`card-flip ${CARD_SIZE} relative`}>
